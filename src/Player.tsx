@@ -19,12 +19,15 @@ export type PlayerProps = {
 };
 
 const origin = 'https://play.sooplive.com';
+const PLAYER_BOOTSTRAP_HEIGHT = 360;
+const PLAYER_BOOTSTRAP_WIDTH = 640;
 
 const Player = (props: PlayerProps) => {
   let iframe: HTMLIFrameElement | undefined;
 
+  const [isPlayerReady, setIsPlayerReady] = createSignal(false);
   const [showChat, setShowChat] = createSignal<boolean>(true);
-  let handledReadyVersion = 0;
+  let handledReadyVersion = props.readyVersion;
   let previousDisplayState = props.displayState;
 
   const handleRefresh = () => {
@@ -60,13 +63,14 @@ const Player = (props: PlayerProps) => {
 
     previousDisplayState = displayState;
 
-    if (readyVersion === 0) {
-      return;
-    }
-
     if (readyVersion !== handledReadyVersion) {
       handledReadyVersion = readyVersion;
+      setIsPlayerReady(true);
       setShowChat(true);
+    }
+
+    if (!isPlayerReady()) {
+      return;
     }
 
     if (displayState === 'minimized') {
@@ -85,6 +89,7 @@ const Player = (props: PlayerProps) => {
       class="group absolute top-0 left-0 overflow-hidden bg-black"
       data-display-state={props.displayState}
       data-player-id={props.id}
+      data-player-ready={isPlayerReady()}
       style={{
         height: props.layout ? `${props.layout.height}px` : '56.25vw',
         'pointer-events': props.displayState === 'hidden' ? 'none' : 'auto',
@@ -98,13 +103,19 @@ const Player = (props: PlayerProps) => {
       <iframe
         allow="autoplay; fullscreen; encrypted-media; local-network-access; loopback-network"
         allowfullscreen
-        class="h-full w-full border-0"
+        class="border-0"
         name={`${props.id}`}
         ref={(element) => {
           iframe = element;
           props.ref(element);
         }}
         src={`https://play.sooplive.com/${props.id}/direct?fromApi=1`}
+        style={{
+          height: isPlayerReady() ? '100%' : `${PLAYER_BOOTSTRAP_HEIGHT}px`,
+          opacity: isPlayerReady() ? 1 : 0,
+          'pointer-events': isPlayerReady() ? 'auto' : 'none',
+          width: isPlayerReady() ? '100%' : `${PLAYER_BOOTSTRAP_WIDTH}px`,
+        }}
         title={`${props.id}`}
       />
 
