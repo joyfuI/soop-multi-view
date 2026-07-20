@@ -25,6 +25,7 @@ const Player = (props: PlayerProps) => {
 
   const [showChat, setShowChat] = createSignal<boolean>(true);
   let handledReadyVersion = 0;
+  let previousDisplayState = props.displayState;
 
   const handleRefresh = () => {
     iframe?.contentWindow?.postMessage({ cmd: 'Pplay' }, origin);
@@ -54,6 +55,10 @@ const Player = (props: PlayerProps) => {
 
   createEffect(() => {
     const readyVersion = props.readyVersion;
+    const displayState = props.displayState;
+    const wasMinimized = previousDisplayState === 'minimized';
+
+    previousDisplayState = displayState;
 
     if (readyVersion === 0) {
       return;
@@ -64,8 +69,10 @@ const Player = (props: PlayerProps) => {
       setShowChat(true);
     }
 
-    if (props.displayState === 'minimized') {
+    if (displayState === 'minimized') {
       setChatVisible(false);
+    } else if (displayState === 'maximized' && wasMinimized) {
+      setChatVisible(true);
     }
   });
 
