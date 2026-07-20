@@ -15,6 +15,7 @@ export type PlayerProps = {
   displayState: MenuItemDisplayState;
   layout?: PlayerLayout;
   onDisplayStateChange?: (displayState: MenuItemDisplayState) => void;
+  readyVersion: number;
 };
 
 const origin = 'https://play.sooplive.com';
@@ -22,9 +23,8 @@ const origin = 'https://play.sooplive.com';
 const Player = (props: PlayerProps) => {
   let iframe: HTMLIFrameElement | undefined;
 
-  const [showChat, setShowChat] = createSignal<boolean>(
-    props.displayState !== 'minimized',
-  );
+  const [showChat, setShowChat] = createSignal<boolean>(true);
+  let handledReadyVersion = 0;
 
   const handleRefresh = () => {
     iframe?.contentWindow?.postMessage({ cmd: 'Pplay' }, origin);
@@ -53,6 +53,17 @@ const Player = (props: PlayerProps) => {
   };
 
   createEffect(() => {
+    const readyVersion = props.readyVersion;
+
+    if (readyVersion === 0) {
+      return;
+    }
+
+    if (readyVersion !== handledReadyVersion) {
+      handledReadyVersion = readyVersion;
+      setShowChat(true);
+    }
+
     if (props.displayState === 'minimized') {
       setChatVisible(false);
     }

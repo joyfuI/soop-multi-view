@@ -48,6 +48,9 @@ const App = () => {
   const [playerLayouts, setPlayerLayouts] = createSignal<
     Record<string, PlayerLayout>
   >({});
+  const [playerReadyVersions, setPlayerReadyVersions] = createSignal<
+    Record<string, number>
+  >({});
   const [list, setList] = createLocalStorage<string[]>('list', []);
   const [state, setState] = createLocalStorage<
     Record<string, { display: MenuItemDisplayState }>
@@ -91,12 +94,16 @@ const App = () => {
                 mutePlay: false,
                 autoPlay: true,
                 isAdShow: false,
-                showChat: getDisplayState(state(), iframe.name) !== 'minimized',
+                showChat: true,
                 showQualityBox: true,
                 fromApi: '1',
               },
               event.origin,
             );
+            setPlayerReadyVersions((versions) => ({
+              ...versions,
+              [iframe.name]: (versions[iframe.name] ?? 0) + 1,
+            }));
             break;
 
           case 'PupdateBroadInfo': // 방송 정보
@@ -316,6 +323,7 @@ const App = () => {
               onDisplayStateChange={(displayState) => {
                 handleDisplayStateChange(item, displayState);
               }}
+              readyVersion={playerReadyVersions()[item] ?? 0}
               ref={(element) => {
                 if (element) {
                   iframes.set(item, element);
