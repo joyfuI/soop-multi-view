@@ -1,0 +1,31 @@
+{
+  "name": "vite-template-solid",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview",
+    "format": "biome format --write",
+    "lint": "biome lint --write",
+    "check": "biome check --write",
+    "reporter": "biome check --reporter=summary"
+  },
+  "dependencies": {
+    "@solidjs/router": "^0.16.2",
+    "@tanstack/solid-query": "^5.101.2",
+    "@tanstack/solid-query-devtools": "^5.101.2",
+    "solid-js": "^1.9.14"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.4",
+    "@tailwindcss/vite": "^4.3.3",
+    "solid-devtools": "^0.34.5",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.5",
+    "vite-plugin-solid": "^2.11.13"
+  },
+  "packageManager": "pnpm@11.15.1+sha512.81350b07e53c9538a02f1f2303b4290fa2d7be04e56e2a970c4cc4b417dc761de196edabd49d55c7dc9580db81007c44143e4e3d7e462b3000d23c255122d065"
+}
