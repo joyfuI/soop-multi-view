@@ -2,6 +2,8 @@
 
 SOOP 멀티뷰 사이트입니다.
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/ffa805bd-12bf-44e9-b298-1541732450ed/deploy-status)](https://app.netlify.com/projects/soop-multi-view/deploys)
+
 ## 사용법
 
 사이트 주소(https://soop-multi-view.netlify.app/) 뒤에 SOOP 아이디를 `/`로 구분하여 넣으면 됩니다.
