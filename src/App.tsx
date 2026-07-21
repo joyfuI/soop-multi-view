@@ -17,6 +17,7 @@ import useHomeBroadQuery from './primitives/useHomeBroadQuery';
 import useStationInfoQuery from './primitives/useStationInfoQuery';
 
 const PLAYER_ASPECT_RATIO = 16 / 9;
+const PLAYER_CHAT_WIDTH = 296;
 const MINIMIZED_MAX_WIDTH = 320;
 const MINIMIZED_MIN_WIDTH = 200;
 const MINIMIZED_VIEWPORT_RATIO = 0.32;
@@ -48,6 +49,9 @@ const App = () => {
   const [stageScrollLeft, setStageScrollLeft] = createSignal(0);
   const [playerLayouts, setPlayerLayouts] = createSignal<
     Record<string, PlayerLayout>
+  >({});
+  const [playerChatVisibility, setPlayerChatVisibility] = createSignal<
+    Record<string, boolean>
   >({});
   const [playerReadyVersions, setPlayerReadyVersions] = createSignal<
     Record<string, number>
@@ -147,6 +151,23 @@ const App = () => {
     const newList = [...set];
     navigate(`/${newList.join('/')}`, { replace: true });
     setList(newList);
+    setPlayerChatVisibility((visibility) => {
+      if (!(id in visibility)) {
+        return visibility;
+      }
+
+      const nextVisibility = { ...visibility };
+      delete nextVisibility[id];
+      return nextVisibility;
+    });
+  };
+
+  const handleChatVisibilityChange = (id: string, visible: boolean) => {
+    setPlayerChatVisibility((visibility) =>
+      visibility[id] === visible
+        ? visibility
+        : { ...visibility, [id]: visible },
+    );
   };
 
   const handleDisplayStateChange = (
@@ -185,6 +206,7 @@ const App = () => {
   createEffect(() => {
     const ids = list();
     const currentState = state();
+    const currentChatVisibility = playerChatVisibility();
     const { width: containerWidth, height: containerHeight } = stageSize();
     const metrics = minimizedMetrics();
     const maximizedIds = ids.filter(
@@ -221,52 +243,80 @@ const App = () => {
 
       if (maximizedIds.length > 0 && maximizedAreaHeight > 0) {
         let columnCount = 1;
-        let tileWidth = 0;
+        let videoWidth = 0;
 
         for (let columns = 1; columns <= maximizedIds.length; columns += 1) {
           const rows = Math.ceil(maximizedIds.length / columns);
-          const candidateWidth = Math.min(
-            containerWidth / columns,
+          let widthConstrainedVideoWidth = Number.POSITIVE_INFINITY;
+
+          for (let row = 0; row < rows; row += 1) {
+            const rowIds = maximizedIds.slice(
+              row * columns,
+              (row + 1) * columns,
+            );
+            const openChatCount = rowIds.filter(
+              (id) => currentChatVisibility[id] ?? true,
+            ).length;
+            const availableVideoWidth =
+              containerWidth - openChatCount * PLAYER_CHAT_WIDTH;
+
+            widthConstrainedVideoWidth = Math.min(
+              widthConstrainedVideoWidth,
+              availableVideoWidth / rowIds.length,
+            );
+          }
+
+          const candidateVideoWidth = Math.min(
+            widthConstrainedVideoWidth,
             (maximizedAreaHeight / rows) * PLAYER_ASPECT_RATIO,
           );
-          const hasSameSize = Math.abs(candidateWidth - tileWidth) < 0.01;
+          const hasSameSize = Math.abs(candidateVideoWidth - videoWidth) < 0.01;
           const isPreferredTie =
             hasSameSize &&
             (containerWidth >= maximizedAreaHeight
               ? columns > columnCount
               : columns < columnCount);
 
-          if (candidateWidth > tileWidth + 0.01 || isPreferredTie) {
+          if (candidateVideoWidth > videoWidth + 0.01 || isPreferredTie) {
             columnCount = columns;
-            tileWidth = candidateWidth;
+            videoWidth = candidateVideoWidth;
           }
         }
 
-        const safeTileWidth = Math.floor(tileWidth * 100) / 100;
-        const tileHeight = safeTileWidth / PLAYER_ASPECT_RATIO;
+        const safeVideoWidth = Math.floor(videoWidth * 100) / 100;
+        const tileHeight = safeVideoWidth / PLAYER_ASPECT_RATIO;
         const rowCount = Math.ceil(maximizedIds.length / columnCount);
         const gridHeight = rowCount * tileHeight;
 
-        maximizedIds.forEach((id, index) => {
-          const row = Math.floor(index / columnCount);
-          const column = index % columnCount;
+        for (let row = 0; row < rowCount; row += 1) {
           const rowStartIndex = row * columnCount;
-          const itemsInRow = Math.min(
-            columnCount,
-            maximizedIds.length - rowStartIndex,
+          const rowIds = maximizedIds.slice(
+            rowStartIndex,
+            rowStartIndex + columnCount,
           );
-          const rowWidth = itemsInRow * safeTileWidth;
+          const rowWidth = rowIds.reduce(
+            (width, id) =>
+              width +
+              safeVideoWidth +
+              ((currentChatVisibility[id] ?? true) ? PLAYER_CHAT_WIDTH : 0),
+            0,
+          );
+          let tileX = safeScrollLeft + (containerWidth - rowWidth) / 2;
 
-          nextLayouts[id] = {
-            height: tileHeight,
-            width: safeTileWidth,
-            x:
-              safeScrollLeft +
-              (containerWidth - rowWidth) / 2 +
-              column * safeTileWidth,
-            y: (maximizedAreaHeight - gridHeight) / 2 + row * tileHeight,
-          };
-        });
+          for (const id of rowIds) {
+            const tileWidth =
+              safeVideoWidth +
+              ((currentChatVisibility[id] ?? true) ? PLAYER_CHAT_WIDTH : 0);
+
+            nextLayouts[id] = {
+              height: tileHeight,
+              width: tileWidth,
+              x: tileX,
+              y: (maximizedAreaHeight - gridHeight) / 2 + row * tileHeight,
+            };
+            tileX += tileWidth;
+          }
+        }
       }
 
       currentMinimizedIds.forEach((id, index) => {
@@ -333,6 +383,9 @@ const App = () => {
               displayState={state()[item]?.display ?? 'maximized'}
               id={item}
               layout={playerLayouts()[item]}
+              onChatVisibilityChange={(visible) => {
+                handleChatVisibilityChange(item, visible);
+              }}
               onDisplayStateChange={(displayState) => {
                 handleDisplayStateChange(item, displayState);
               }}

@@ -14,6 +14,7 @@ export type PlayerProps = {
   id: string;
   displayState: MenuItemDisplayState;
   layout?: PlayerLayout;
+  onChatVisibilityChange?: (visible: boolean) => void;
   onDisplayStateChange?: (displayState: MenuItemDisplayState) => void;
   readyVersion: number;
 };
@@ -34,12 +35,22 @@ const Player = (props: PlayerProps) => {
     iframe?.contentWindow?.postMessage({ cmd: 'Pplay' }, origin);
   };
 
+  const updateChatVisibility = (visible: boolean) => {
+    if (showChat() === visible) {
+      return false;
+    }
+
+    setShowChat(visible);
+    props.onChatVisibilityChange?.(visible);
+    return true;
+  };
+
   const setChatVisible = (visible: boolean) => {
     if (showChat() === visible) {
       return;
     }
     iframe?.contentWindow?.postMessage({ cmd: 'PtoggleChat' }, origin);
-    setShowChat(visible);
+    updateChatVisibility(visible);
   };
 
   const handleChat = () => {
@@ -66,7 +77,7 @@ const Player = (props: PlayerProps) => {
     if (readyVersion !== handledReadyVersion) {
       handledReadyVersion = readyVersion;
       setIsPlayerReady(true);
-      setShowChat(true);
+      updateChatVisibility(true);
     }
 
     if (!isPlayerReady()) {

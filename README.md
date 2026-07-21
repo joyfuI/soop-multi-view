@@ -1,8 +1,10 @@
 # soop-multi-view
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/ffa805bd-12bf-44e9-b298-1541732450ed/deploy-status)](https://app.netlify.com/projects/soop-multi-view/deploys)
+
 SOOP 멀티뷰 사이트입니다.
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/ffa805bd-12bf-44e9-b298-1541732450ed/deploy-status)](https://app.netlify.com/projects/soop-multi-view/deploys)
+이 프로젝트는 OpenAI Codex로 만들어졌습니다.
 
 ## 사용법
 
