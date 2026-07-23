@@ -113,7 +113,7 @@ const Menu = (props: MenuProps) => {
               SOOP ID
             </label>
             <input
-              class="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/8 px-3 py-1.5 text-sm text-white transition outline-none focus:ring-2 focus:ring-white/10 md:w-32 md:flex-none"
+              class="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/8 px-3 py-1.5 text-sm text-white transition outline-none focus:ring-2 focus:ring-white/10 md:w-28 md:flex-none"
               id="view-name"
               placeholder="SOOP ID"
               ref={nameInput}
