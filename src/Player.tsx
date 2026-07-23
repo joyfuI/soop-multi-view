@@ -1,5 +1,11 @@
 import { createEffect, createSignal, onCleanup } from 'solid-js';
 
+import {
+  ChatIcon,
+  MaximizeIcon,
+  MinimizeIcon,
+  RefreshIcon,
+} from './components/icons';
 import type { MenuItemDisplayState } from './components/MenuItem';
 
 export type PlayerLayout = {
@@ -141,20 +147,7 @@ const Player = (props: PlayerProps) => {
           title="새로고침"
           type="button"
         >
-          <svg
-            aria-hidden="true"
-            class="size-4.5"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 11a8.1 8.1 0 1 0 .1 3M20 4v7h-7"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.8"
-            />
-          </svg>
+          <RefreshIcon class="size-4.5" />
         </button>
 
         <button
@@ -166,24 +159,11 @@ const Player = (props: PlayerProps) => {
           title={props.displayState === 'maximized' ? '축소' : '확대'}
           type="button"
         >
-          <svg
-            aria-hidden="true"
-            class="size-4.5"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d={
-                props.displayState === 'maximized'
-                  ? 'M4 14h6v6M20 10h-6V4'
-                  : 'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7'
-              }
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.8"
-            />
-          </svg>
+          {props.displayState === 'maximized' ? (
+            <MinimizeIcon class="size-4.5" />
+          ) : (
+            <MaximizeIcon class="size-4.5" />
+          )}
         </button>
 
         <button
@@ -194,20 +174,7 @@ const Player = (props: PlayerProps) => {
           title="채팅 토글"
           type="button"
         >
-          <svg
-            aria-hidden="true"
-            class="size-4.5"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M20 11.5a7.5 7.5 0 0 1-8 7.5 9 9 0 0 1-3.8-.8L4 20l1.5-4A7.4 7.4 0 0 1 4 11.5C4 7.4 7.6 4 12 4s8 3.4 8 7.5Z"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.8"
-            />
-          </svg>
+          <ChatIcon class="size-4.5" />
         </button>
       </div>
     </div>

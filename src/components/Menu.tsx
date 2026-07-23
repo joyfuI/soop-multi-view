@@ -1,5 +1,12 @@
 import { For } from 'solid-js';
 
+import {
+  CloseIcon,
+  EyeOffIcon,
+  MaximizeIcon,
+  MenuIcon,
+  PlusIcon,
+} from './icons';
 import type { MenuItemDisplayState } from './MenuItem';
 import MenuItem from './MenuItem';
 
@@ -55,32 +62,8 @@ const Menu = (props: MenuProps) => {
           aria-label="메뉴 열기"
           class="fixed top-3 left-3 z-50 grid size-10 cursor-pointer list-none place-items-center rounded-xl border border-white/15 bg-neutral-950/40 text-white shadow-lg shadow-black/10 transition hover:bg-neutral-950/55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
         >
-          <svg
-            aria-hidden="true"
-            class="size-5 group-open:hidden"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M5 7.5h14M5 12h14M5 16.5h14"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-width="1.8"
-            />
-          </svg>
-          <svg
-            aria-hidden="true"
-            class="hidden size-5 group-open:block"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="m7 7 10 10M17 7 7 17"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-width="1.8"
-            />
-          </svg>
+          <MenuIcon class="size-5 group-open:hidden" />
+          <CloseIcon class="hidden size-5 group-open:block" />
         </summary>
 
         <div class="fixed top-3 right-3 left-15 z-40 flex max-h-[calc(100dvh-1.5rem)] flex-col gap-2 overflow-hidden rounded-2xl border border-white/15 bg-neutral-950/75 p-2 text-white shadow-2xl shadow-black/25 backdrop-blur-lg md:flex-row md:items-center">
@@ -94,20 +77,7 @@ const Menu = (props: MenuProps) => {
               title="온라인 플레이어 모두 확대"
               type="button"
             >
-              <svg
-                aria-hidden="true"
-                class="size-4"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.8"
-                />
-              </svg>
+              <MaximizeIcon class="size-4" />
               <span class="absolute right-1 bottom-1 size-1.5 rounded-full bg-emerald-400 ring-2 ring-neutral-950/80" />
             </button>
 
@@ -119,20 +89,7 @@ const Menu = (props: MenuProps) => {
               title="오프라인 플레이어 모두 숨기기"
               type="button"
             >
-              <svg
-                aria-hidden="true"
-                class="size-4"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="m3 3 18 18M10.7 10.7a2 2 0 0 0 2.6 2.6M9.9 4.2A9.7 9.7 0 0 1 12 4c4.8 0 8 4.3 9 8a13 13 0 0 1-1.3 2.8M6.6 6.6A12 12 0 0 0 3 12c1 3.7 4.2 8 9 8a9 9 0 0 0 3.3-.6"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.8"
-                />
-              </svg>
+              <EyeOffIcon class="size-4" />
               <span class="absolute right-1 bottom-1 size-1.5 rounded-full bg-white/35 ring-2 ring-neutral-950/80" />
             </button>
           </fieldset>
@@ -169,19 +126,7 @@ const Menu = (props: MenuProps) => {
               title="추가"
               type="button"
             >
-              <svg
-                aria-hidden="true"
-                class="size-4"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M12 5v14M5 12h14"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-width="2"
-                />
-              </svg>
+              <PlusIcon class="size-4" />
             </button>
           </div>
         </div>

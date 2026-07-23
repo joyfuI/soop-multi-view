@@ -1,3 +1,5 @@
+import { CloseIcon, EyeOffIcon, MaximizeIcon, MinimizeIcon } from './icons';
+
 export type MenuItemDisplayState = 'hidden' | 'minimized' | 'maximized';
 
 export type MenuItemProps = {
@@ -39,20 +41,7 @@ const MenuItem = (props: MenuItemProps) => {
           title="숨기기"
           type="button"
         >
-          <svg
-            aria-hidden="true"
-            class="size-3.5"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="m3 3 18 18M10.7 10.7a2 2 0 0 0 2.6 2.6M9.9 4.2A9.7 9.7 0 0 1 12 4c4.8 0 8 4.3 9 8a13 13 0 0 1-1.3 2.8M6.6 6.6A12 12 0 0 0 3 12c1 3.7 4.2 8 9 8a9 9 0 0 0 3.3-.6"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.8"
-            />
-          </svg>
+          <EyeOffIcon class="size-3.5" />
         </button>
         <button
           aria-label={`${props.name} 축소`}
@@ -62,20 +51,7 @@ const MenuItem = (props: MenuItemProps) => {
           title="축소"
           type="button"
         >
-          <svg
-            aria-hidden="true"
-            class="size-3.5"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M4 14h6v6M20 10h-6V4"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.8"
-            />
-          </svg>
+          <MinimizeIcon class="size-3.5" />
         </button>
         <button
           aria-label={`${props.name} 확대`}
@@ -85,20 +61,7 @@ const MenuItem = (props: MenuItemProps) => {
           title="확대"
           type="button"
         >
-          <svg
-            aria-hidden="true"
-            class="size-3.5"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.8"
-            />
-          </svg>
+          <MaximizeIcon class="size-3.5" />
         </button>
       </fieldset>
 
@@ -109,19 +72,7 @@ const MenuItem = (props: MenuItemProps) => {
         title="삭제"
         type="button"
       >
-        <svg
-          aria-hidden="true"
-          class="size-3.5"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <path
-            d="m8 8 8 8m0-8-8 8"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-width="2"
-          />
-        </svg>
+        <CloseIcon class="size-3.5" />
       </button>
     </li>
   );
