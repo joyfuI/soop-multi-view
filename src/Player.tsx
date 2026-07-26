@@ -38,6 +38,7 @@ const Player = (props: PlayerProps) => {
   const [isPlayerVisible, setIsPlayerVisible] = createSignal(false);
   const [isPlayerUsingActualSize, setIsPlayerUsingActualSize] =
     createSignal(false);
+  const [isChatToggleReady, setIsChatToggleReady] = createSignal(false);
   const [isPlayerReady, setIsPlayerReady] = createSignal(false);
   const [showChat, setShowChat] = createSignal<boolean>(true);
   let handledFrameReadyVersion = props.frameReadyVersion;
@@ -98,8 +99,13 @@ const Player = (props: PlayerProps) => {
 
     handledFrameReadyVersion = frameReadyVersion;
     clearFallbackRevealTimer();
+    // Pload always starts with showChat enabled so SOOP establishes the chat
+    // connection. Mirror that reset before applying the display state later.
+    setIsChatToggleReady(false);
+    updateChatVisibility(true);
 
     if (isPlayerReady()) {
+      setIsChatToggleReady(true);
       setIsPlayerVisible(true);
       return;
     }
@@ -108,6 +114,10 @@ const Player = (props: PlayerProps) => {
     // never arrives, expose SOOP's own controls so the user can start playback.
     fallbackRevealTimer = window.setTimeout(() => {
       fallbackRevealTimer = undefined;
+      if (props.displayState === 'minimized') {
+        setChatVisible(false);
+      }
+      setIsChatToggleReady(true);
       setIsPlayerUsingActualSize(true);
       setIsPlayerVisible(true);
     }, PLAYER_FALLBACK_REVEAL_DELAY_MS);
@@ -126,10 +136,10 @@ const Player = (props: PlayerProps) => {
       setIsPlayerUsingActualSize(true);
       setIsPlayerVisible(true);
       setIsPlayerReady(true);
-      updateChatVisibility(true);
+      setIsChatToggleReady(true);
     }
 
-    if (!isPlayerReady()) {
+    if (!isChatToggleReady()) {
       return;
     }
 
