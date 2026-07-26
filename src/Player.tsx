@@ -36,6 +36,8 @@ const Player = (props: PlayerProps) => {
   let fallbackRevealTimer: number | undefined;
 
   const [isPlayerVisible, setIsPlayerVisible] = createSignal(false);
+  const [isPlayerUsingActualSize, setIsPlayerUsingActualSize] =
+    createSignal(false);
   const [isPlayerReady, setIsPlayerReady] = createSignal(false);
   const [showChat, setShowChat] = createSignal<boolean>(true);
   let handledFrameReadyVersion = props.frameReadyVersion;
@@ -49,17 +51,6 @@ const Player = (props: PlayerProps) => {
 
     window.clearTimeout(fallbackRevealTimer);
     fallbackRevealTimer = undefined;
-  };
-
-  const getBootstrapScale = () => {
-    if (!props.layout || props.layout.width <= 0 || props.layout.height <= 0) {
-      return 1;
-    }
-
-    return Math.min(
-      props.layout.width / PLAYER_BOOTSTRAP_WIDTH,
-      props.layout.height / PLAYER_BOOTSTRAP_HEIGHT,
-    );
   };
 
   const handleRefresh = () => {
@@ -117,6 +108,7 @@ const Player = (props: PlayerProps) => {
     // never arrives, expose SOOP's own controls so the user can start playback.
     fallbackRevealTimer = window.setTimeout(() => {
       fallbackRevealTimer = undefined;
+      setIsPlayerUsingActualSize(true);
       setIsPlayerVisible(true);
     }, PLAYER_FALLBACK_REVEAL_DELAY_MS);
   });
@@ -131,6 +123,7 @@ const Player = (props: PlayerProps) => {
     if (readyVersion !== handledReadyVersion) {
       handledReadyVersion = readyVersion;
       clearFallbackRevealTimer();
+      setIsPlayerUsingActualSize(true);
       setIsPlayerVisible(true);
       setIsPlayerReady(true);
       updateChatVisibility(true);
@@ -156,6 +149,7 @@ const Player = (props: PlayerProps) => {
     <div
       class="group absolute top-0 left-0 overflow-hidden bg-black"
       data-display-state={props.displayState}
+      data-player-actual-size={isPlayerUsingActualSize()}
       data-player-id={props.id}
       data-player-ready={isPlayerReady()}
       data-player-visible={isPlayerVisible()}
@@ -180,19 +174,14 @@ const Player = (props: PlayerProps) => {
         }}
         src={`https://play.sooplive.com/${props.id}/direct?fromApi=1`}
         style={{
-          height: isPlayerReady() ? '100%' : `${PLAYER_BOOTSTRAP_HEIGHT}px`,
-          left: isPlayerReady() ? 0 : '50%',
+          height: isPlayerUsingActualSize()
+            ? '100%'
+            : `${PLAYER_BOOTSTRAP_HEIGHT}px`,
           opacity: isPlayerVisible() ? 1 : 0,
-          position: 'absolute',
           'pointer-events': isPlayerVisible() ? 'auto' : 'none',
-          top: isPlayerReady() ? 0 : '50%',
-          // Preserve SOOP's 640×360 bootstrap viewport for its responsive UI,
-          // while fitting the clickable fallback inside the actual player tile.
-          transform: isPlayerReady()
-            ? 'none'
-            : `translate(-50%, -50%) scale(${getBootstrapScale()})`,
-          'transform-origin': 'center',
-          width: isPlayerReady() ? '100%' : `${PLAYER_BOOTSTRAP_WIDTH}px`,
+          width: isPlayerUsingActualSize()
+            ? '100%'
+            : `${PLAYER_BOOTSTRAP_WIDTH}px`,
         }}
         title={`${props.id}`}
       />
