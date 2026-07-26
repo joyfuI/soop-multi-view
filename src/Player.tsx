@@ -15,6 +15,8 @@ export type PlayerLayout = {
   y: number;
 };
 
+export const PLAYER_CHAT_WIDTH = 296;
+
 export type PlayerProps = {
   ref: (element: HTMLIFrameElement | undefined) => void;
   id: string;
@@ -43,7 +45,9 @@ const Player = (props: PlayerProps) => {
   let fallbackRevealTimer: number | undefined;
 
   const [playerPhase, setPlayerPhase] = createSignal(PlayerPhase.Bootstrapping);
-  const [showChat, setShowChat] = createSignal<boolean>(true);
+  const [isChatVisible, setIsChatVisible] = createSignal(
+    props.displayState !== 'minimized',
+  );
   let handledFrameReadyVersion = props.frameReadyVersion;
   let handledReadyVersion = props.readyVersion;
   let previousDisplayState = props.displayState;
@@ -59,11 +63,6 @@ const Player = (props: PlayerProps) => {
 
   const isPlayerRevealed = () => playerPhase() !== PlayerPhase.Bootstrapping;
 
-  const isChatToggleReady = () => {
-    const phase = playerPhase();
-    return phase === PlayerPhase.Fallback || phase === PlayerPhase.Playing;
-  };
-
   const isPlayerReady = () => playerPhase() === PlayerPhase.Playing;
 
   const handleRefresh = () => {
@@ -71,29 +70,17 @@ const Player = (props: PlayerProps) => {
   };
 
   const updateChatVisibility = (visible: boolean) => {
-    if (showChat() === visible) {
+    if (isChatVisible() === visible) {
       return false;
     }
 
-    setShowChat(visible);
+    setIsChatVisible(visible);
     props.onChatVisibilityChange?.(visible);
     return true;
   };
 
-  const setChatVisible = (visible: boolean) => {
-    if (showChat() === visible) {
-      return;
-    }
-    iframe?.contentWindow?.postMessage({ cmd: 'PtoggleChat' }, origin);
-    updateChatVisibility(visible);
-  };
-
   const handleChat = () => {
-    if (props.displayState === 'minimized') {
-      setChatVisible(false);
-      return;
-    }
-    setChatVisible(!showChat());
+    updateChatVisibility(!isChatVisible());
   };
 
   const handleDisplayStateChange = () => {
@@ -119,9 +106,6 @@ const Player = (props: PlayerProps) => {
     ) {
       setPlayerPhase(PlayerPhase.Reconnecting);
     }
-    // Pload always starts with showChat enabled so SOOP establishes the chat
-    // connection. Mirror that reset before applying the display state later.
-    updateChatVisibility(true);
 
     if (currentPhase === PlayerPhase.Playing) {
       return;
@@ -131,9 +115,6 @@ const Player = (props: PlayerProps) => {
     // never arrives, expose SOOP's own controls so the user can start playback.
     fallbackRevealTimer = window.setTimeout(() => {
       fallbackRevealTimer = undefined;
-      if (props.displayState === 'minimized') {
-        setChatVisible(false);
-      }
       setPlayerPhase(PlayerPhase.Fallback);
     }, PLAYER_FALLBACK_REVEAL_DELAY_MS);
   });
@@ -151,14 +132,10 @@ const Player = (props: PlayerProps) => {
       setPlayerPhase(PlayerPhase.Playing);
     }
 
-    if (!isChatToggleReady()) {
-      return;
-    }
-
     if (displayState === 'minimized') {
-      setChatVisible(false);
+      updateChatVisibility(false);
     } else if (displayState === 'maximized' && wasMinimized) {
-      setChatVisible(true);
+      updateChatVisibility(true);
     }
   });
 
@@ -170,6 +147,7 @@ const Player = (props: PlayerProps) => {
   return (
     <div
       class="group absolute top-0 left-0 overflow-hidden bg-black"
+      data-chat-visible={isChatVisible()}
       data-display-state={props.displayState}
       data-player-actual-size={isPlayerRevealed()}
       data-player-id={props.id}
@@ -200,14 +178,22 @@ const Player = (props: PlayerProps) => {
           height: isPlayerRevealed() ? '100%' : `${PLAYER_BOOTSTRAP_HEIGHT}px`,
           opacity: isPlayerRevealed() ? 1 : 0,
           'pointer-events': isPlayerRevealed() ? 'auto' : 'none',
-          width: isPlayerRevealed() ? '100%' : `${PLAYER_BOOTSTRAP_WIDTH}px`,
+          width: isPlayerRevealed()
+            ? isChatVisible()
+              ? '100%'
+              : `calc(100% + ${PLAYER_CHAT_WIDTH}px)`
+            : `${PLAYER_BOOTSTRAP_WIDTH}px`,
         }}
         title={`${props.id}`}
       />
 
       <div
         class="pointer-events-none absolute top-3 z-10 flex gap-1.5 opacity-0 transition-[right,opacity] duration-150 group-hover:opacity-100"
-        style={{ right: showChat() ? 'calc(296px + 0.75rem)' : '0.75rem' }}
+        style={{
+          right: isChatVisible()
+            ? `calc(${PLAYER_CHAT_WIDTH}px + 0.75rem)`
+            : '0.75rem',
+        }}
       >
         <button
           aria-label={`${props.id} 새로고침`}

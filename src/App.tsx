@@ -11,13 +11,12 @@ import {
 import Menu from './components/Menu';
 import type { MenuItemDisplayState } from './components/MenuItem';
 import type { PlayerLayout } from './Player';
-import Player from './Player';
+import Player, { PLAYER_CHAT_WIDTH } from './Player';
 import { createLocalStorage } from './primitives/createStorage';
 import useHomeBroadQuery from './primitives/useHomeBroadQuery';
 import useStationInfoQuery from './primitives/useStationInfoQuery';
 
 const PLAYER_ASPECT_RATIO = 16 / 9;
-const PLAYER_CHAT_WIDTH = 296;
 const MINIMIZED_MAX_WIDTH = 320;
 const MINIMIZED_MIN_WIDTH = 200;
 const MINIMIZED_VIEWPORT_RATIO = 0.32;
