@@ -19,6 +19,7 @@ export type PlayerProps = {
   ref: (element: HTMLIFrameElement | undefined) => void;
   id: string;
   displayState: MenuItemDisplayState;
+  frameReadyVersion: number;
   layout?: PlayerLayout;
   onChatVisibilityChange?: (visible: boolean) => void;
   onDisplayStateChange?: (displayState: MenuItemDisplayState) => void;
@@ -28,14 +29,38 @@ export type PlayerProps = {
 const origin = 'https://play.sooplive.com';
 const PLAYER_BOOTSTRAP_HEIGHT = 360;
 const PLAYER_BOOTSTRAP_WIDTH = 640;
+const PLAYER_FALLBACK_REVEAL_DELAY_MS = 1000;
 
 const Player = (props: PlayerProps) => {
   let iframe: HTMLIFrameElement | undefined;
+  let fallbackRevealTimer: number | undefined;
 
+  const [isPlayerVisible, setIsPlayerVisible] = createSignal(false);
   const [isPlayerReady, setIsPlayerReady] = createSignal(false);
   const [showChat, setShowChat] = createSignal<boolean>(true);
+  let handledFrameReadyVersion = props.frameReadyVersion;
   let handledReadyVersion = props.readyVersion;
   let previousDisplayState = props.displayState;
+
+  const clearFallbackRevealTimer = () => {
+    if (fallbackRevealTimer === undefined) {
+      return;
+    }
+
+    window.clearTimeout(fallbackRevealTimer);
+    fallbackRevealTimer = undefined;
+  };
+
+  const getBootstrapScale = () => {
+    if (!props.layout || props.layout.width <= 0 || props.layout.height <= 0) {
+      return 1;
+    }
+
+    return Math.min(
+      props.layout.width / PLAYER_BOOTSTRAP_WIDTH,
+      props.layout.height / PLAYER_BOOTSTRAP_HEIGHT,
+    );
+  };
 
   const handleRefresh = () => {
     iframe?.contentWindow?.postMessage({ cmd: 'Pplay' }, origin);
@@ -74,6 +99,29 @@ const Player = (props: PlayerProps) => {
   };
 
   createEffect(() => {
+    const frameReadyVersion = props.frameReadyVersion;
+
+    if (frameReadyVersion === handledFrameReadyVersion) {
+      return;
+    }
+
+    handledFrameReadyVersion = frameReadyVersion;
+    clearFallbackRevealTimer();
+
+    if (isPlayerReady()) {
+      setIsPlayerVisible(true);
+      return;
+    }
+
+    // A successful autoplay is revealed by PupdateMediaEvent. If that event
+    // never arrives, expose SOOP's own controls so the user can start playback.
+    fallbackRevealTimer = window.setTimeout(() => {
+      fallbackRevealTimer = undefined;
+      setIsPlayerVisible(true);
+    }, PLAYER_FALLBACK_REVEAL_DELAY_MS);
+  });
+
+  createEffect(() => {
     const readyVersion = props.readyVersion;
     const displayState = props.displayState;
     const wasMinimized = previousDisplayState === 'minimized';
@@ -82,6 +130,8 @@ const Player = (props: PlayerProps) => {
 
     if (readyVersion !== handledReadyVersion) {
       handledReadyVersion = readyVersion;
+      clearFallbackRevealTimer();
+      setIsPlayerVisible(true);
       setIsPlayerReady(true);
       updateChatVisibility(true);
     }
@@ -98,6 +148,7 @@ const Player = (props: PlayerProps) => {
   });
 
   onCleanup(() => {
+    clearFallbackRevealTimer();
     props.ref(undefined);
   });
 
@@ -107,6 +158,7 @@ const Player = (props: PlayerProps) => {
       data-display-state={props.displayState}
       data-player-id={props.id}
       data-player-ready={isPlayerReady()}
+      data-player-visible={isPlayerVisible()}
       style={{
         height: props.layout ? `${props.layout.height}px` : '56.25vw',
         'pointer-events': props.displayState === 'hidden' ? 'none' : 'auto',
@@ -129,8 +181,17 @@ const Player = (props: PlayerProps) => {
         src={`https://play.sooplive.com/${props.id}/direct?fromApi=1`}
         style={{
           height: isPlayerReady() ? '100%' : `${PLAYER_BOOTSTRAP_HEIGHT}px`,
-          opacity: isPlayerReady() ? 1 : 0,
-          'pointer-events': isPlayerReady() ? 'auto' : 'none',
+          left: isPlayerReady() ? 0 : '50%',
+          opacity: isPlayerVisible() ? 1 : 0,
+          position: 'absolute',
+          'pointer-events': isPlayerVisible() ? 'auto' : 'none',
+          top: isPlayerReady() ? 0 : '50%',
+          // Preserve SOOP's 640×360 bootstrap viewport for its responsive UI,
+          // while fitting the clickable fallback inside the actual player tile.
+          transform: isPlayerReady()
+            ? 'none'
+            : `translate(-50%, -50%) scale(${getBootstrapScale()})`,
+          'transform-origin': 'center',
           width: isPlayerReady() ? '100%' : `${PLAYER_BOOTSTRAP_WIDTH}px`,
         }}
         title={`${props.id}`}

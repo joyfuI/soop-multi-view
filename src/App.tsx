@@ -53,6 +53,9 @@ const App = () => {
   const [playerChatVisibility, setPlayerChatVisibility] = createSignal<
     Record<string, boolean>
   >({});
+  const [playerFrameReadyVersions, setPlayerFrameReadyVersions] = createSignal<
+    Record<string, number>
+  >({});
   const [playerReadyVersions, setPlayerReadyVersions] = createSignal<
     Record<string, number>
   >({});
@@ -117,6 +120,10 @@ const App = () => {
               },
               event.origin,
             );
+            setPlayerFrameReadyVersions((versions) => ({
+              ...versions,
+              [iframe.name]: (versions[iframe.name] ?? 0) + 1,
+            }));
             break;
 
           case 'PupdateMediaEvent':
@@ -381,6 +388,7 @@ const App = () => {
           {(item) => (
             <Player
               displayState={state()[item]?.display ?? 'maximized'}
+              frameReadyVersion={playerFrameReadyVersions()[item] ?? 0}
               id={item}
               layout={playerLayouts()[item]}
               onChatVisibilityChange={(visible) => {
