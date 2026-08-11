@@ -28,7 +28,6 @@ export type PlayerProps = {
   readyVersion: number;
 };
 
-const origin = 'https://play.sooplive.com';
 const PLAYER_BOOTSTRAP_HEIGHT = 360;
 const PLAYER_BOOTSTRAP_WIDTH = 640;
 const PLAYER_FALLBACK_REVEAL_DELAY_MS = 1000;
@@ -66,7 +65,9 @@ const Player = (props: PlayerProps) => {
   const isPlayerReady = () => playerPhase() === PlayerPhase.Playing;
 
   const handleRefresh = () => {
-    iframe?.contentWindow?.postMessage({ cmd: 'Pplay' }, origin);
+    if (iframe) {
+      iframe.setAttribute('src', iframe.src);
+    }
   };
 
   const updateChatVisibility = (visible: boolean) => {
