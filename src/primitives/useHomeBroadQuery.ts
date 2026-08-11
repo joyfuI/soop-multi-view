@@ -10,6 +10,7 @@ const useHomeBroadQuery = (ids: Accessor<string[]>) => {
       queryFn: () => getHomeBroad(id),
       staleTime: 60000,
       refetchInterval: 60000,
+      refetchIntervalInBackground: false,
     })),
   }));
 };

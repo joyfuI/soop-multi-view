@@ -350,6 +350,11 @@ const App = () => {
         onAdd={handleAdd}
         onDelete={handleDelete}
         onDisplayStateChange={handleDisplayStateChange}
+        onOpen={() => {
+          for (const query of homeBroadQueries) {
+            query.refetch({ cancelRefetch: false });
+          }
+        }}
       />
 
       <main

@@ -17,6 +17,7 @@ export type MenuProps = {
     online?: boolean;
     displayState: MenuItemDisplayState;
   }[];
+  onOpen?: () => void;
   onAdd?: (id: string) => void;
   onDelete?: (id: string) => void;
   onDisplayStateChange?: (
@@ -57,7 +58,14 @@ const Menu = (props: MenuProps) => {
 
   return (
     <nav>
-      <details class="group">
+      <details
+        class="group"
+        onToggle={(event) => {
+          if (event.currentTarget.open) {
+            props.onOpen?.();
+          }
+        }}
+      >
         <summary
           aria-label="메뉴 열기"
           class="fixed top-3 left-3 z-50 grid size-10 cursor-pointer list-none place-items-center rounded-xl border border-white/15 bg-neutral-950/40 text-white shadow-lg shadow-black/10 transition hover:bg-neutral-950/55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
