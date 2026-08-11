@@ -13,19 +13,19 @@
     "reporter": "biome check --reporter=summary"
   },
   "dependencies": {
-    "@solidjs/router": "^0.16.2",
+    "@solidjs/router": "^1.0.0",
     "@tanstack/solid-query": "^5.101.4",
     "@tanstack/solid-query-devtools": "^5.101.4",
     "solid-js": "^1.9.14"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.5",
+    "@biomejs/biome": "^2.5.7",
     "@tailwindcss/vite": "^4.3.3",
     "solid-devtools": "^0.34.5",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
-    "vite": "^8.1.5",
-    "vite-plugin-solid": "^2.11.13"
+    "vite": "^8.2.1",
+    "vite-plugin-solid": "^2.11.14"
   },
-  "packageManager": "pnpm@11.16.0+sha512.b767e9a98fc87aec0f42daefcd0e84941c2cdb45d73c4e1e68860fb2bdfdbe032ab592105479e5e05c237f740c8a5ffdbbb52385797ddc2296745a1bbb883e8d"
+  "packageManager": "pnpm@11.21.0+sha512.521705bce689924eac72f5a3587122f362689ef6571e55ba80076fd637c11132ecffada26fad4ea79c485bfddbfd3d5a2a5b05805a77e893de71ec8a6cca3bb1"
 }
