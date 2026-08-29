@@ -1,108 +1,89 @@
-import type { Accessor } from 'solid-js';
 import { createMemo, createSignal, onCleanup, onMount } from 'solid-js';
 
+type StorageEventType = 'localstorage' | 'sessionstorage';
 type CustomStorageEvent = CustomEvent<{ key: string }>;
 
-type StorageSetter<T> = (value: T | ((oldValue: T) => T)) => void;
-
-type StorageResult<T> = readonly [
-  value: Accessor<T>,
-  setValue: StorageSetter<T>,
-  deleteValue: () => void,
-];
+declare global {
+  interface WindowEventMap {
+    localstorage: CustomStorageEvent;
+    sessionstorage: CustomStorageEvent;
+  }
+}
 
 const createStorage = <T>(
   storage: Storage,
-  eventType: string,
+  eventType: StorageEventType,
   key: string,
   initialValue: T | (() => T),
-): StorageResult<T> => {
-  const getInitialValue = (): T =>
-    typeof initialValue === 'function'
-      ? (initialValue as () => T)()
-      : initialValue;
-
-  // 문자열 snapshot을 보관해야 같은 값이 저장됐을 때 불필요한 갱신을 막을 수 있다.
-  const [item, setItem] = createSignal<string | null>(storage.getItem(key));
+) => {
+  const [item, setItem] = createSignal(storage.getItem(key));
 
   const syncItem = () => {
     setItem(storage.getItem(key));
   };
 
-  const handleStorageEvent = (event: StorageEvent) => {
-    if (
-      event.storageArea === storage &&
-      (event.key === key || event.key === null)
-    ) {
-      syncItem();
-    }
-  };
-
-  const handleCustomStorageEvent: EventListener = (event) => {
-    const customEvent = event as CustomStorageEvent;
-
-    if (customEvent.detail?.key === key) {
-      syncItem();
+  const handleStorageEvent = (event: StorageEvent | CustomStorageEvent) => {
+    if (event instanceof StorageEvent) {
+      if (
+        event.storageArea === storage &&
+        (event.key === key || event.key === null)
+      ) {
+        syncItem();
+      }
+    } else if (event instanceof CustomEvent) {
+      if (event.detail.key === key) {
+        syncItem();
+      }
     }
   };
 
   onMount(() => {
     window.addEventListener('storage', handleStorageEvent); // 다른 탭
-    window.addEventListener(eventType, handleCustomStorageEvent); // 같은 탭
-    syncItem(); // 초기 렌더와 mount 사이에 값이 변경됐을 가능성 반영
-
+    window.addEventListener(eventType, handleStorageEvent); // 같은 탭
     onCleanup(() => {
       window.removeEventListener('storage', handleStorageEvent);
-      window.removeEventListener(eventType, handleCustomStorageEvent);
+      window.removeEventListener(eventType, handleStorageEvent);
     });
   });
 
+  const getInitialValue = (): T =>
+    typeof initialValue === 'function'
+      ? (initialValue as () => T)()
+      : initialValue;
+
   const storedValue = createMemo<T>(() => {
     const currentItem = item();
-
-    if (currentItem === null) {
-      return getInitialValue();
-    }
-
     try {
-      return JSON.parse(currentItem) as T;
+      return currentItem !== null
+        ? (JSON.parse(currentItem) as T)
+        : getInitialValue();
     } catch {
       return getInitialValue();
     }
   });
 
-  const setValue: StorageSetter<T> = (newValue) => {
+  const setValue = (newValue: T | ((oldValue: T) => T)) => {
     const value =
       typeof newValue === 'function'
         ? (newValue as (oldValue: T) => T)(storedValue())
         : newValue;
-
-    const serializedValue = JSON.stringify(value);
-
-    if (serializedValue === undefined) {
-      throw new TypeError('스토리지 값은 JSON으로 직렬화할 수 있어야 합니다.');
-    }
-
-    storage.setItem(key, serializedValue);
-
-    window.dispatchEvent(
-      new CustomEvent<{ key: string }>(eventType, { detail: { key } }),
-    );
+    storage.setItem(key, JSON.stringify(value));
+    window.dispatchEvent(new CustomEvent(eventType, { detail: { key } })); // 커스텀 이벤트 발생
   };
 
   const deleteValue = () => {
     storage.removeItem(key);
-
-    window.dispatchEvent(
-      new CustomEvent<{ key: string }>(eventType, { detail: { key } }),
-    );
+    window.dispatchEvent(new CustomEvent(eventType, { detail: { key } })); // 커스텀 이벤트 발생
   };
 
   return [storedValue, setValue, deleteValue] as const;
 };
 
 /**
- * 로컬 스토리지를 다루는 Solid primitive
+ * 로컬 스토리지를 다루는 프리미티브
+ * @param key 로컬스토리지에 저장할 키
+ * @param initialValue 값이 없을 때 사용할 기본값
+ * @returns [저장된 값 함수, 변경 함수, 삭제 함수]
  */
 export const createLocalStorage = <T>(
   key: string,
@@ -110,7 +91,10 @@ export const createLocalStorage = <T>(
 ) => createStorage(window.localStorage, 'localstorage', key, initialValue);
 
 /**
- * 세션 스토리지를 다루는 Solid primitive
+ * 세션 스토리지를 다루는 프리미티브
+ * @param key 세션스토리지에 저장할 키
+ * @param initialValue 값이 없을 때 사용할 기본값
+ * @returns [저장된 값 함수, 변경 함수, 삭제 함수]
  */
 export const createSessionStorage = <T>(
   key: string,
