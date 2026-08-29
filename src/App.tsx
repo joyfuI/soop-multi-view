@@ -144,8 +144,13 @@ const App = () => {
   });
 
   const handleAdd = (id: string) => {
+    const normalizedId = id.trim();
+    if (!normalizedId) {
+      return;
+    }
+
     const set = new Set<string>(list());
-    set.add(id);
+    set.add(normalizedId);
     const newList = [...set];
     navigate(`/${newList.join('/')}`, { replace: true });
     setList(newList);
