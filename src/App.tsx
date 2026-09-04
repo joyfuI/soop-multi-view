@@ -10,6 +10,7 @@ import {
 
 import Menu from './components/Menu';
 import type { MenuItemDisplayState } from './components/MenuItem';
+import { makeIdsPath, parseIds } from './helper/ids';
 import type { PlayerLayout } from './Player';
 import Player, { PLAYER_CHAT_WIDTH } from './Player';
 import { createLocalStorage } from './primitives/createStorage';
@@ -63,21 +64,25 @@ const App = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const ids = location.pathname
-    .split('/')
-    .slice(1)
-    .map(decodeURIComponent)
-    .filter(Boolean);
+  const ids = createMemo(() => parseIds(location.pathname));
 
-  const stationInfoQueries = useStationInfoQuery(list);
-  const homeBroadQueries = useHomeBroadQuery(list);
+  const stationInfoQueries = useStationInfoQuery(ids);
+  const homeBroadQueries = useHomeBroadQuery(ids);
 
-  onMount(() => {
-    if (ids.length === 0) {
-      navigate(`/${list().join('/')}`, { replace: true });
-    } else {
-      setList(ids);
+  const setIds = (newIds: string[]) => {
+    setList(newIds);
+    navigate(makeIdsPath(newIds), { replace: true });
+  };
+
+  createEffect(() => {
+    if (location.pathname === '/') {
+      const newIds = list();
+      if (newIds.length > 0) {
+        navigate(makeIdsPath(newIds), { replace: true });
+      }
+      return;
     }
+    setList(ids());
   });
 
   onMount(() => {
@@ -147,19 +152,13 @@ const App = () => {
       return;
     }
 
-    const set = new Set<string>(list());
-    set.add(normalizedId);
-    const newList = [...set];
-    navigate(`/${newList.join('/')}`, { replace: true });
-    setList(newList);
+    const newIds = [...new Set([...ids(), normalizedId])];
+    setIds(newIds);
   };
 
   const handleDelete = (id: string) => {
-    const set = new Set<string>(list());
-    set.delete(id);
-    const newList = [...set];
-    navigate(`/${newList.join('/')}`, { replace: true });
-    setList(newList);
+    const newIds = ids().filter((item) => item !== id);
+    setIds(newIds);
     setPlayerChatVisibility((visibility) => {
       if (!(id in visibility)) {
         return visibility;
@@ -188,7 +187,7 @@ const App = () => {
 
   const minimizedIds = createMemo(() => {
     const currentState = state();
-    return list().filter(
+    return ids().filter(
       (id) => getDisplayState(currentState, id) === 'minimized',
     );
   });
@@ -208,12 +207,12 @@ const App = () => {
   });
 
   createEffect(() => {
-    const ids = list();
+    const currentIds = ids();
     const currentState = state();
     const currentChatVisibility = playerChatVisibility();
     const { width: containerWidth, height: containerHeight } = stageSize();
     const metrics = minimizedMetrics();
-    const maximizedIds = ids.filter(
+    const maximizedIds = currentIds.filter(
       (id) => getDisplayState(currentState, id) === 'maximized',
     );
     const currentMinimizedIds = minimizedIds();
@@ -231,7 +230,7 @@ const App = () => {
     setPlayerLayouts((previousLayouts) => {
       const nextLayouts: Record<string, PlayerLayout> = {};
 
-      for (const id of ids) {
+      for (const id of currentIds) {
         nextLayouts[id] = previousLayouts[id] ?? {
           height: containerWidth / PLAYER_ASPECT_RATIO,
           width: containerWidth,
@@ -339,7 +338,7 @@ const App = () => {
   return (
     <>
       <Menu
-        data={list().map((item, index) => ({
+        data={ids().map((item, index) => ({
           id: item,
           name: stationInfoQueries[index]?.data?.station.userNick ?? item,
           online: !!homeBroadQueries[index]?.data,
@@ -386,7 +385,7 @@ const App = () => {
           style={{ width: `${minimizedMetrics().contentWidth}px` }}
         />
 
-        <For each={list()}>
+        <For each={ids()}>
           {(item) => (
             <Player
               displayState={state()[item]?.display ?? 'maximized'}
