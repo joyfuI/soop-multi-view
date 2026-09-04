@@ -20,8 +20,6 @@ const PLAYER_ASPECT_RATIO = 16 / 9;
 const MINIMIZED_MAX_WIDTH = 320;
 const MINIMIZED_MIN_WIDTH = 200;
 const MINIMIZED_VIEWPORT_RATIO = 0.32;
-const MINIMIZED_GAP = 8;
-const MINIMIZED_PADDING = 8;
 
 type StageSize = { width: number; height: number };
 
@@ -199,16 +197,11 @@ const App = () => {
     const count = minimizedIds().length;
     const tileWidth = getMinimizedTileWidth(stageSize().width);
     const tileHeight = tileWidth / PLAYER_ASPECT_RATIO;
-    const contentWidth =
-      count === 0
-        ? stageSize().width
-        : MINIMIZED_PADDING * 2 +
-          tileWidth * count +
-          MINIMIZED_GAP * (count - 1);
+    const contentWidth = count === 0 ? stageSize().width : tileWidth * count;
 
     return {
       contentWidth: Math.max(stageSize().width, contentWidth),
-      railHeight: count === 0 ? 0 : tileHeight + MINIMIZED_PADDING * 2,
+      railHeight: count === 0 ? 0 : tileHeight,
       tileHeight,
       tileWidth,
     };
@@ -334,8 +327,8 @@ const App = () => {
         nextLayouts[id] = {
           height: metrics.tileHeight,
           width: metrics.tileWidth,
-          x: MINIMIZED_PADDING + index * (metrics.tileWidth + MINIMIZED_GAP),
-          y: containerHeight - metrics.tileHeight - MINIMIZED_PADDING,
+          x: index * metrics.tileWidth,
+          y: containerHeight - metrics.tileHeight,
         };
       });
 
