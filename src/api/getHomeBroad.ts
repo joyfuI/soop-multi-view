@@ -22,7 +22,7 @@ export type GetHomeBroadResponse = {
 
 const getHomeBroad = (userId: string) =>
   fetchJson<GetHomeBroadResponse>(
-    `https://api-channel.sooplive.com/v1.1/channel/${userId}/home/section/broad`,
+    `https://api-channel.sooplive.com/v1.1/channel/${encodeURIComponent(userId)}/home/section/broad`,
   ).catch(() => Promise.resolve(null));
 
 export default getHomeBroad;

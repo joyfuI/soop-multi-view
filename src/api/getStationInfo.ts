@@ -77,7 +77,7 @@ export type GetStationInfoResponse = {
 
 const getStationInfo = (userId: string) =>
   fetchJson<GetStationInfoResponse>(
-    `https://api-channel.sooplive.com/v1.1/channel/${userId}/station`,
+    `https://api-channel.sooplive.com/v1.1/channel/${encodeURIComponent(userId)}/station`,
   );
 
 export default getStationInfo;

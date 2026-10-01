@@ -173,7 +173,7 @@ const Player = (props: PlayerProps) => {
           iframe = element;
           props.ref(element);
         }}
-        src={`https://play.sooplive.com/${props.id}/direct?fromApi=1`}
+        src={`https://play.sooplive.com/${encodeURIComponent(props.id)}/direct?fromApi=1`}
         style={{
           height: isPlayerRevealed() ? '100%' : `${PLAYER_BOOTSTRAP_HEIGHT}px`,
           opacity: isPlayerRevealed() ? 1 : 0,

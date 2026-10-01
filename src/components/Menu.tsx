@@ -1,5 +1,6 @@
 import { For } from 'solid-js';
 
+import { normalizeId } from '../helper/ids';
 import {
   CloseIcon,
   EyeOffIcon,
@@ -30,7 +31,15 @@ const Menu = (props: MenuProps) => {
   let nameInput!: HTMLInputElement;
 
   const handleAdd = () => {
-    props.onAdd?.(nameInput.value);
+    const id = normalizeId(nameInput.value);
+    nameInput.setCustomValidity(
+      id ? '' : 'SOOP ID는 12자 이내의 영문과 숫자로 입력해 주세요.',
+    );
+    if (!id) {
+      nameInput.reportValidity();
+      return;
+    }
+    props.onAdd?.(id);
     nameInput.value = '';
   };
 
@@ -123,6 +132,7 @@ const Menu = (props: MenuProps) => {
             <input
               class="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/8 px-3 py-1.5 text-sm text-white transition outline-none focus:ring-2 focus:ring-white/10 md:w-28 md:flex-none"
               id="view-name"
+              onInput={(event) => event.currentTarget.setCustomValidity('')}
               placeholder="SOOP ID"
               ref={nameInput}
               type="text"

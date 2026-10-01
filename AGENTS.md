@@ -75,6 +75,7 @@ localStorage.setItem(
 
 ```bash
 pnpm exec biome check src/App.tsx src/Player.tsx
+node tests/ids.test.mjs
 node tests/playerGrid.test.mjs
 pnpm run build
 pnpm run dev --host 127.0.0.1
@@ -94,3 +95,15 @@ pnpm run dev --host 127.0.0.1
 - 1~9개 플레이어와 여러 화면 비율에 대해 모든 행별 채팅 개수 분배를 전수 탐색한 결과와 비교하고, 중복·누락·영역 초과·반복 계산 시 배치 변경을 검사한다.
 - 실제 브라우저에서는 채팅 토글 후 영상이 커지는지, 화면 크기와 축소·숨김 상태 변경 후에도 배치가 맞는지 확인한다. 배치는 좌표로만 변경하며 URL과 메뉴 순서, 기존 iframe 요소는 유지한다.
 - 같은 날짜 Edge 실방송 4개에서 영상 너비 812px, 채팅 CSS 자르기, 화면 크기 변경, 확대·축소 후 기존 iframe과 `playing` 상태 유지를 확인했다.
+
+## SOOP ID 입력 보안 점검
+
+2026-10-01에 입력 검증 문제를 수정하고 격리된 Edge 컨텍스트에서 회귀를 확인했다. 외부 요청은 테스트 응답으로 대체했으며 SOOP 서버의 응답이나 리다이렉트 동작은 검증하지 않았다.
+
+- 같은 날짜 [SOOP 회원가입 안내](https://member.sooplive.com/app/join.php)는 ID를 영문·숫자 6~12자로 제한한다. 앱에서는 기존의 짧은 방송 ID도 허용하도록 영문·숫자 1~12자를 사용하며 대소문자는 보존한다.
+- `normalizeId`와 `normalizeIds`를 입력창, URL 파싱, 경로 생성, 저장 목록 복원에 적용한다. 복원할 JSON이 배열이 아니거나 배열 안에 비문자열·잘못된 ID가 있으면 제외하고 유효한 ID는 순서와 함께 보존한다.
+- `.`과 `..`는 `encodeURIComponent`로 이스케이프되지 않으므로 인코딩만으로 차단하지 않는다. 수정 전 `/alpha/beta`에서 `..`를 추가하면 `beta`가 저장 목록에서도 삭제되는 회귀가 있었다. 이제 잘못된 입력은 기존 URL·목록·iframe 요소를 유지하고 브라우저의 입력 오류 안내를 표시한다.
+- iframe과 API URL에 넣는 ID는 별도로 `encodeURIComponent`를 적용한다. 수정 전 `../..`로 API 경로를 바꾸거나 `user/direct?fromApi=0#`로 iframe의 `fromApi` 값을 바꿀 수 있었다.
+- `/alpha/user%2Fdirect%3FfromApi%3D0%23`처럼 인코딩된 공유 URL과 기존 저장 목록에서도 악성 ID를 제외하며 해당 ID의 SOOP 요청을 만들지 않아야 한다.
+- `node tests/ids.test.mjs`는 문자·길이 제한, 경로 이동 문자, URL·HTML·제어문자, 잘못된 퍼센트 인코딩, 저장 목록의 타입과 중복을 확인한다. Edge에서는 악성 입력 13종 거부, 정상 추가·중복·삭제, 공유 URL 필터링, 저장 목록 복원과 기존 iframe 유지를 확인했다.
+- 브라우저 회귀는 새 컨텍스트에서 외부 요청을 가로채 요청 URL과 저장 목록을 확인한다. 잘못된 퍼센트 인코딩은 Vite 개발 서버가 직접 URL 요청을 거부할 수 있으므로 앱의 `parseIds` 동작은 함수 호출 또는 History API 이동으로 분리해 확인한다.

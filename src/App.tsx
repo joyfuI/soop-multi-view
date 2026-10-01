@@ -10,7 +10,7 @@ import {
 
 import Menu from './components/Menu';
 import type { MenuItemDisplayState } from './components/MenuItem';
-import { makeIdsPath, parseIds } from './helper/ids';
+import { makeIdsPath, normalizeId, normalizeIds, parseIds } from './helper/ids';
 import {
   getMaximizedGrid,
   PLAYER_ASPECT_RATIO,
@@ -74,16 +74,14 @@ const App = () => {
   const homeBroadQueries = useHomeBroadQuery(ids);
 
   const setIds = (newIds: string[]) => {
-    setList(newIds);
-    navigate(makeIdsPath(newIds), { replace: true });
+    const normalizedIds = normalizeIds(newIds);
+    setList(normalizedIds);
+    navigate(makeIdsPath(normalizedIds), { replace: true });
   };
 
   createEffect(() => {
     if (location.pathname === '/') {
-      const newIds = list();
-      if (newIds.length > 0) {
-        navigate(makeIdsPath(newIds), { replace: true });
-      }
+      setIds(list());
       return;
     }
     setList(ids());
@@ -151,7 +149,7 @@ const App = () => {
   });
 
   const handleAdd = (id: string) => {
-    const normalizedId = id.trim();
+    const normalizedId = normalizeId(id);
     if (!normalizedId) {
       return;
     }

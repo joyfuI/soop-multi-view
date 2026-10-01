@@ -1,7 +1,21 @@
+export const normalizeId = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const id = value.trim();
+  return /^[a-z0-9]{1,12}$/i.test(id) ? id : null;
+};
+
+export const normalizeIds = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  return [
+    ...new Set(
+      value.map(normalizeId).filter((id): id is string => id !== null),
+    ),
+  ];
+};
+
 const decodeId = (str: string): string | null => {
   try {
-    const id = decodeURIComponent(str).trim();
-    return id || null;
+    return normalizeId(decodeURIComponent(str));
   } catch {
     return null;
   }
@@ -17,5 +31,6 @@ export const parseIds = (pathname: string): string[] => {
 };
 
 export const makeIdsPath = (ids: string[]): string => {
-  return ids.length === 0 ? '/' : `/${ids.map(encodeURIComponent).join('/')}`;
+  const normalizedIds = normalizeIds(ids);
+  return `/${normalizedIds.map(encodeURIComponent).join('/')}`;
 };
