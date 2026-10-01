@@ -247,15 +247,8 @@ const App = () => {
       );
 
       if (maximizedIds.length > 0 && maximizedAreaHeight > 0) {
-        const visualOrder = maximizedIds.toSorted(
-          (a, b) =>
-            (previousLayouts[a]?.y ?? Number.POSITIVE_INFINITY) -
-              (previousLayouts[b]?.y ?? Number.POSITIVE_INFINITY) ||
-            (previousLayouts[a]?.x ?? Number.POSITIVE_INFINITY) -
-              (previousLayouts[b]?.x ?? Number.POSITIVE_INFINITY),
-        );
         const { rows, videoWidth: safeVideoWidth } = getMaximizedGrid(
-          visualOrder,
+          maximizedIds,
           currentChatVisibility,
           containerWidth,
           maximizedAreaHeight,

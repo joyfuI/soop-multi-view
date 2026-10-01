@@ -14,6 +14,12 @@ assert.deepEqual(balanced.rows, [
   ['b', 'd'],
 ]);
 assert.equal(balanced.videoWidth, 812);
+for (const chatVisibility of [{}, { a: false, b: false, c: false, d: false }]) {
+  assert.deepEqual(getMaximizedGrid(ids, chatVisibility, 1920, 1080).rows, [
+    ['a', 'b'],
+    ['c', 'd'],
+  ]);
+}
 assert.deepEqual(
   getMaximizedGrid(balanced.rows.flat(), visibility, 1920, 1080),
   balanced,

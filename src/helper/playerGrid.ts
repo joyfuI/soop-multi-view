@@ -13,7 +13,7 @@ export const getMaximizedGrid = (
   let videoWidth = 0;
   let lastRowOpenChats: number | undefined;
 
-  // Find the best grid in the current visual order first, preserving it on ties.
+  // Prefer the original ID order whenever reordering would not enlarge videos.
   for (let columns = 1; columns <= ids.length; columns += 1) {
     const rows = Math.ceil(ids.length / columns);
     let candidateWidth = (height / rows) * PLAYER_ASPECT_RATIO;
