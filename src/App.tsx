@@ -11,13 +11,17 @@ import {
 import Menu from './components/Menu';
 import type { MenuItemDisplayState } from './components/MenuItem';
 import { makeIdsPath, parseIds } from './helper/ids';
+import {
+  getMaximizedGrid,
+  PLAYER_ASPECT_RATIO,
+  PLAYER_CHAT_WIDTH,
+} from './helper/playerGrid';
 import type { PlayerLayout } from './Player';
-import Player, { PLAYER_CHAT_WIDTH } from './Player';
+import Player from './Player';
 import { createLocalStorage } from './primitives/createStorage';
 import useHomeBroadQuery from './primitives/useHomeBroadQuery';
 import useStationInfoQuery from './primitives/useStationInfoQuery';
 
-const PLAYER_ASPECT_RATIO = 16 / 9;
 const MINIMIZED_MAX_WIDTH = 320;
 const MINIMIZED_MIN_WIDTH = 200;
 const MINIMIZED_VIEWPORT_RATIO = 0.32;
@@ -245,58 +249,23 @@ const App = () => {
       );
 
       if (maximizedIds.length > 0 && maximizedAreaHeight > 0) {
-        let columnCount = 1;
-        let videoWidth = 0;
-
-        for (let columns = 1; columns <= maximizedIds.length; columns += 1) {
-          const rows = Math.ceil(maximizedIds.length / columns);
-          let widthConstrainedVideoWidth = Number.POSITIVE_INFINITY;
-
-          for (let row = 0; row < rows; row += 1) {
-            const rowIds = maximizedIds.slice(
-              row * columns,
-              (row + 1) * columns,
-            );
-            const openChatCount = rowIds.filter(
-              (id) => currentChatVisibility[id] ?? true,
-            ).length;
-            const availableVideoWidth =
-              containerWidth - openChatCount * PLAYER_CHAT_WIDTH;
-
-            widthConstrainedVideoWidth = Math.min(
-              widthConstrainedVideoWidth,
-              availableVideoWidth / rowIds.length,
-            );
-          }
-
-          const candidateVideoWidth = Math.min(
-            widthConstrainedVideoWidth,
-            (maximizedAreaHeight / rows) * PLAYER_ASPECT_RATIO,
-          );
-          const hasSameSize = Math.abs(candidateVideoWidth - videoWidth) < 0.01;
-          const isPreferredTie =
-            hasSameSize &&
-            (containerWidth >= maximizedAreaHeight
-              ? columns > columnCount
-              : columns < columnCount);
-
-          if (candidateVideoWidth > videoWidth + 0.01 || isPreferredTie) {
-            columnCount = columns;
-            videoWidth = candidateVideoWidth;
-          }
-        }
-
-        const safeVideoWidth = Math.floor(videoWidth * 100) / 100;
+        const visualOrder = maximizedIds.toSorted(
+          (a, b) =>
+            (previousLayouts[a]?.y ?? Number.POSITIVE_INFINITY) -
+              (previousLayouts[b]?.y ?? Number.POSITIVE_INFINITY) ||
+            (previousLayouts[a]?.x ?? Number.POSITIVE_INFINITY) -
+              (previousLayouts[b]?.x ?? Number.POSITIVE_INFINITY),
+        );
+        const { rows, videoWidth: safeVideoWidth } = getMaximizedGrid(
+          visualOrder,
+          currentChatVisibility,
+          containerWidth,
+          maximizedAreaHeight,
+        );
         const tileHeight = safeVideoWidth / PLAYER_ASPECT_RATIO;
-        const rowCount = Math.ceil(maximizedIds.length / columnCount);
-        const gridHeight = rowCount * tileHeight;
+        const gridHeight = rows.length * tileHeight;
 
-        for (let row = 0; row < rowCount; row += 1) {
-          const rowStartIndex = row * columnCount;
-          const rowIds = maximizedIds.slice(
-            rowStartIndex,
-            rowStartIndex + columnCount,
-          );
+        rows.forEach((rowIds, row) => {
           const rowWidth = rowIds.reduce(
             (width, id) =>
               width +
@@ -319,7 +288,7 @@ const App = () => {
             };
             tileX += tileWidth;
           }
-        }
+        });
       }
 
       currentMinimizedIds.forEach((id, index) => {

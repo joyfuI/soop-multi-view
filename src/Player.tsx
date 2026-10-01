@@ -7,6 +7,7 @@ import {
   RefreshIcon,
 } from './components/icons';
 import type { MenuItemDisplayState } from './components/MenuItem';
+import { PLAYER_CHAT_WIDTH } from './helper/playerGrid';
 
 export type PlayerLayout = {
   height: number;
@@ -14,8 +15,6 @@ export type PlayerLayout = {
   x: number;
   y: number;
 };
-
-export const PLAYER_CHAT_WIDTH = 296;
 
 export type PlayerProps = {
   ref: (element: HTMLIFrameElement | undefined) => void;

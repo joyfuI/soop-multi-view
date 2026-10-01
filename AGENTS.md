@@ -75,6 +75,7 @@ localStorage.setItem(
 
 ```bash
 pnpm exec biome check src/App.tsx src/Player.tsx
+node tests/playerGrid.test.mjs
 pnpm run build
 pnpm run dev --host 127.0.0.1
 ```
@@ -82,3 +83,14 @@ pnpm run dev --host 127.0.0.1
 - `pnpm run check`는 `--write`가 포함되어 파일을 수정한다. 읽기 전용 확인이 필요하면 `pnpm exec biome check ...`를 사용한다.
 - 브라우저 자동화 산출물은 `output/playwright/` 아래에 만들고 검증이 끝나면 제거한다.
 - 광고 차단 확장 프로그램에서 발생하는 `broadcast_information` timeout 같은 오류는 앱 오류와 구분한다.
+
+## 채팅 상태별 확대 배치 회귀
+
+2026-10-01에 추가한 계산 검증은 `node tests/playerGrid.test.mjs`로 실행한다. Node의 기본 TypeScript 실행 기능을 사용하며 별도 테스트 라이브러리는 필요 없다.
+
+- 1920x1080에서 확대 플레이어 4개가 `ON, ON, OFF, OFF` 순서이면 각 행에 ON 1개씩 배치하고 영상 너비가 812px이어야 한다.
+- 같은 조건에서 높이를 720px로 줄이면 높이가 크기를 제한하므로 기존 순서를 유지해야 한다.
+- 마지막 행의 플레이어 수가 적으면 ON 개수를 단순 균등 분배하지 않는다. 3000x1080, 플레이어 5개, ON 3개에서는 첫 행에 ON 1개와 OFF 2개, 마지막 행에 ON 2개가 최적이다.
+- 1~9개 플레이어와 여러 화면 비율에 대해 모든 행별 채팅 개수 분배를 전수 탐색한 결과와 비교하고, 중복·누락·영역 초과·반복 계산 시 배치 변경을 검사한다.
+- 실제 브라우저에서는 채팅 토글 후 영상이 커지는지, 화면 크기와 축소·숨김 상태 변경 후에도 배치가 맞는지 확인한다. 배치는 좌표로만 변경하며 URL과 메뉴 순서, 기존 iframe 요소는 유지한다.
+- 같은 날짜 Edge 실방송 4개에서 영상 너비 812px, 채팅 CSS 자르기, 화면 크기 변경, 확대·축소 후 기존 iframe과 `playing` 상태 유지를 확인했다.
