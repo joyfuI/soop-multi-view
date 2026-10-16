@@ -41,7 +41,6 @@ const getMinimizedTileWidth = (containerWidth: number) =>
 
 const App = () => {
   const iframes = new Map<string, HTMLIFrameElement>();
-  const pendingPlayerLoads = new Set<string>();
   let playerStage!: HTMLElement;
 
   const [stageSize, setStageSize] = createSignal<StageSize>({
@@ -54,12 +53,6 @@ const App = () => {
   >({});
   const [playerChatVisibility, setPlayerChatVisibility] = createSignal<
     Record<string, boolean>
-  >({});
-  const [playerFrameReadyVersions, setPlayerFrameReadyVersions] = createSignal<
-    Record<string, number>
-  >({});
-  const [playerReadyVersions, setPlayerReadyVersions] = createSignal<
-    Record<string, number>
   >({});
   const [list, setList] = createLocalStorage<string[]>('list', []);
   const [state, setState] = createLocalStorage<
@@ -88,17 +81,6 @@ const App = () => {
   });
 
   onMount(() => {
-    const markPlayerLoaded = (id: string) => {
-      if (!pendingPlayerLoads.delete(id)) {
-        return;
-      }
-
-      setPlayerReadyVersions((versions) => ({
-        ...versions,
-        [id]: (versions[id] ?? 0) + 1,
-      }));
-    };
-
     const handleMessage = (event: MessageEvent) => {
       if (event.origin === 'https://play.sooplive.com') {
         const iframe = [...iframes.values()].find(
@@ -110,7 +92,6 @@ const App = () => {
 
         switch (event.data.cmd) {
           case 'PonReady': // 플레이어 로드
-            pendingPlayerLoads.add(iframe.name);
             iframe.contentWindow?.postMessage(
               {
                 cmd: 'Pload',
@@ -124,14 +105,6 @@ const App = () => {
               },
               event.origin,
             );
-            setPlayerFrameReadyVersions((versions) => ({
-              ...versions,
-              [iframe.name]: (versions[iframe.name] ?? 0) + 1,
-            }));
-            break;
-
-          case 'PupdateMediaEvent':
-            markPlayerLoaded(iframe.name);
             break;
 
           case 'PupdateBroadInfo': // 방송 정보
@@ -349,7 +322,6 @@ const App = () => {
           {(item) => (
             <Player
               displayState={state()[item]?.display ?? 'maximized'}
-              frameReadyVersion={playerFrameReadyVersions()[item] ?? 0}
               id={item}
               layout={playerLayouts()[item]}
               onChatVisibilityChange={(visible) => {
@@ -358,7 +330,6 @@ const App = () => {
               onDisplayStateChange={(displayState) => {
                 handleDisplayStateChange(item, displayState);
               }}
-              readyVersion={playerReadyVersions()[item] ?? 0}
               ref={(element) => {
                 if (element) {
                   iframes.set(item, element);

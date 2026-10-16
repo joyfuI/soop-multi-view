@@ -20,48 +20,18 @@ export type PlayerProps = {
   ref: (element: HTMLIFrameElement | undefined) => void;
   id: string;
   displayState: MenuItemDisplayState;
-  frameReadyVersion: number;
   layout?: PlayerLayout;
   onChatVisibilityChange?: (visible: boolean) => void;
   onDisplayStateChange?: (displayState: MenuItemDisplayState) => void;
-  readyVersion: number;
 };
-
-const PLAYER_BOOTSTRAP_HEIGHT = 360;
-const PLAYER_BOOTSTRAP_WIDTH = 640;
-const PLAYER_FALLBACK_REVEAL_DELAY_MS = 1000;
-
-enum PlayerPhase {
-  Bootstrapping = 'bootstrapping',
-  Fallback = 'fallback',
-  Playing = 'playing',
-  Reconnecting = 'reconnecting',
-}
 
 const Player = (props: PlayerProps) => {
   let iframe: HTMLIFrameElement | undefined;
-  let fallbackRevealTimer: number | undefined;
 
-  const [playerPhase, setPlayerPhase] = createSignal(PlayerPhase.Bootstrapping);
   const [isChatVisible, setIsChatVisible] = createSignal(
     props.displayState !== 'minimized',
   );
-  let handledFrameReadyVersion = props.frameReadyVersion;
-  let handledReadyVersion = props.readyVersion;
   let previousDisplayState = props.displayState;
-
-  const clearFallbackRevealTimer = () => {
-    if (fallbackRevealTimer === undefined) {
-      return;
-    }
-
-    window.clearTimeout(fallbackRevealTimer);
-    fallbackRevealTimer = undefined;
-  };
-
-  const isPlayerRevealed = () => playerPhase() !== PlayerPhase.Bootstrapping;
-
-  const isPlayerReady = () => playerPhase() === PlayerPhase.Playing;
 
   const handleRefresh = () => {
     if (iframe) {
@@ -90,47 +60,10 @@ const Player = (props: PlayerProps) => {
   };
 
   createEffect(() => {
-    const frameReadyVersion = props.frameReadyVersion;
-
-    if (frameReadyVersion === handledFrameReadyVersion) {
-      return;
-    }
-
-    const currentPhase = playerPhase();
-
-    handledFrameReadyVersion = frameReadyVersion;
-    clearFallbackRevealTimer();
-    if (
-      currentPhase === PlayerPhase.Fallback ||
-      currentPhase === PlayerPhase.Reconnecting
-    ) {
-      setPlayerPhase(PlayerPhase.Reconnecting);
-    }
-
-    if (currentPhase === PlayerPhase.Playing) {
-      return;
-    }
-
-    // A successful autoplay is revealed by PupdateMediaEvent. If that event
-    // never arrives, expose SOOP's own controls so the user can start playback.
-    fallbackRevealTimer = window.setTimeout(() => {
-      fallbackRevealTimer = undefined;
-      setPlayerPhase(PlayerPhase.Fallback);
-    }, PLAYER_FALLBACK_REVEAL_DELAY_MS);
-  });
-
-  createEffect(() => {
-    const readyVersion = props.readyVersion;
     const displayState = props.displayState;
     const wasMinimized = previousDisplayState === 'minimized';
 
     previousDisplayState = displayState;
-
-    if (readyVersion !== handledReadyVersion) {
-      handledReadyVersion = readyVersion;
-      clearFallbackRevealTimer();
-      setPlayerPhase(PlayerPhase.Playing);
-    }
 
     if (displayState === 'minimized') {
       updateChatVisibility(false);
@@ -140,7 +73,6 @@ const Player = (props: PlayerProps) => {
   });
 
   onCleanup(() => {
-    clearFallbackRevealTimer();
     props.ref(undefined);
   });
 
@@ -149,11 +81,7 @@ const Player = (props: PlayerProps) => {
       class="group absolute top-0 left-0 overflow-hidden bg-black"
       data-chat-visible={isChatVisible()}
       data-display-state={props.displayState}
-      data-player-actual-size={isPlayerRevealed()}
       data-player-id={props.id}
-      data-player-phase={playerPhase()}
-      data-player-ready={isPlayerReady()}
-      data-player-visible={isPlayerRevealed()}
       style={{
         height: props.layout ? `${props.layout.height}px` : '56.25vw',
         'pointer-events': props.displayState === 'hidden' ? 'none' : 'auto',
@@ -175,14 +103,10 @@ const Player = (props: PlayerProps) => {
         }}
         src={`https://play.sooplive.com/${encodeURIComponent(props.id)}/direct?fromApi=1`}
         style={{
-          height: isPlayerRevealed() ? '100%' : `${PLAYER_BOOTSTRAP_HEIGHT}px`,
-          opacity: isPlayerRevealed() ? 1 : 0,
-          'pointer-events': isPlayerRevealed() ? 'auto' : 'none',
-          width: isPlayerRevealed()
-            ? isChatVisible()
-              ? '100%'
-              : `calc(100% + ${PLAYER_CHAT_WIDTH}px)`
-            : `${PLAYER_BOOTSTRAP_WIDTH}px`,
+          height: '100%',
+          width: isChatVisible()
+            ? '100%'
+            : `calc(100% + ${PLAYER_CHAT_WIDTH}px)`,
         }}
         title={`${props.id}`}
       />
