@@ -1,4 +1,4 @@
-import { For } from 'solid-js';
+import { For, Show } from 'solid-js';
 
 import { normalizeId } from '../helper/ids';
 import {
@@ -19,6 +19,7 @@ export type MenuProps = {
     displayState: MenuItemDisplayState;
   }[];
   onOpen?: () => void;
+  onOpenUserscriptGuide?: () => void;
   onAdd?: (id: string) => void;
   onDelete?: (id: string) => void;
   onDisplayStateChange?: (
@@ -29,6 +30,7 @@ export type MenuProps = {
 
 const Menu = (props: MenuProps) => {
   let nameInput!: HTMLInputElement;
+  let details!: HTMLDetailsElement;
 
   const handleAdd = () => {
     const id = normalizeId(nameInput.value);
@@ -74,6 +76,7 @@ const Menu = (props: MenuProps) => {
             props.onOpen?.();
           }
         }}
+        ref={details}
       >
         <summary
           aria-label="메뉴 열기"
@@ -126,6 +129,18 @@ const Menu = (props: MenuProps) => {
           </ul>
 
           <div class="flex shrink-0 items-center gap-1.5 border-t border-white/10 pt-2 md:border-t-0 md:border-l md:pt-0 md:pl-2">
+            <Show when={props.onOpenUserscriptGuide}>
+              <button
+                class="shrink-0 rounded-lg px-2 py-1.5 text-xs text-white/65 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                onClick={() => {
+                  details.open = false;
+                  props.onOpenUserscriptGuide?.();
+                }}
+                type="button"
+              >
+                유저 스크립트 안내
+              </button>
+            </Show>
             <label class="sr-only" for="view-name">
               SOOP ID
             </label>

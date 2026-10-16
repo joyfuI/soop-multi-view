@@ -6,16 +6,23 @@ import {
   For,
   onCleanup,
   onMount,
+  Show,
 } from 'solid-js';
 
 import Menu from './components/Menu';
 import type { MenuItemDisplayState } from './components/MenuItem';
+import UserscriptNotice from './components/UserscriptNotice';
 import { makeIdsPath, normalizeId, normalizeIds, parseIds } from './helper/ids';
 import {
   getMaximizedGrid,
   PLAYER_ASPECT_RATIO,
   PLAYER_CHAT_WIDTH,
 } from './helper/playerGrid';
+import {
+  createUserscriptCheck,
+  getBrowserFamily,
+  type UserscriptStatus,
+} from './helper/userscript';
 import type { PlayerLayout } from './Player';
 import Player from './Player';
 import { createLocalStorage } from './primitives/createStorage';
@@ -42,6 +49,21 @@ const getMinimizedTileWidth = (containerWidth: number) =>
 const App = () => {
   const iframes = new Map<string, HTMLIFrameElement>();
   let playerStage!: HTMLElement;
+  const browserFamily = getBrowserFamily(navigator);
+  const [userscriptStatus, setUserscriptStatus] =
+    createSignal<UserscriptStatus>('checking');
+  const [userscriptGuideOpen, setUserscriptGuideOpen] = createSignal(false);
+  const [userscriptNoticeDismissed, setUserscriptNoticeDismissed] =
+    createLocalStorage('userscript-notice-dismissed', false);
+  const userscriptCheck = createUserscriptCheck((status) => {
+    setUserscriptStatus(status);
+    if (status === 'active') setUserscriptGuideOpen(false);
+  });
+  const userscriptMissing = () => userscriptStatus() === 'missing';
+  const showUserscriptNotice = () =>
+    ids().length === 0 ||
+    (userscriptMissing() &&
+      (userscriptGuideOpen() || !userscriptNoticeDismissed()));
 
   const [stageSize, setStageSize] = createSignal<StageSize>({
     width: 0,
@@ -82,6 +104,7 @@ const App = () => {
 
   onMount(() => {
     const handleMessage = (event: MessageEvent) => {
+      userscriptCheck.receive(event);
       if (event.origin === 'https://play.sooplive.com') {
         const iframe = [...iframes.values()].find(
           (item) => item.contentWindow === event.source,
@@ -90,7 +113,7 @@ const App = () => {
           return;
         }
 
-        switch (event.data.cmd) {
+        switch (event.data?.cmd) {
           case 'PonReady': // 플레이어 로드
             iframe.contentWindow?.postMessage(
               {
@@ -115,9 +138,11 @@ const App = () => {
     };
 
     window.addEventListener('message', handleMessage);
+    userscriptCheck.checkPage();
 
     onCleanup(() => {
       window.removeEventListener('message', handleMessage);
+      userscriptCheck.dispose();
     });
   });
 
@@ -269,7 +294,7 @@ const App = () => {
   });
 
   return (
-    <>
+    <div class="flex h-dvh flex-col overflow-hidden bg-black">
       <Menu
         data={ids().map((item, index) => ({
           id: item,
@@ -285,10 +310,25 @@ const App = () => {
             query.refetch({ cancelRefetch: false });
           }
         }}
+        onOpenUserscriptGuide={
+          userscriptMissing() ? () => setUserscriptGuideOpen(true) : undefined
+        }
       />
 
+      <Show when={showUserscriptNotice()}>
+        <UserscriptNotice
+          chromium={browserFamily === 'chromium'}
+          empty={ids().length === 0}
+          onClose={() => {
+            setUserscriptNoticeDismissed(true);
+            setUserscriptGuideOpen(false);
+          }}
+          status={userscriptStatus()}
+        />
+      </Show>
+
       <main
-        class="relative h-dvh w-full overflow-x-auto overflow-y-hidden bg-black [scrollbar-color:rgba(255,255,255,0.25)_transparent] scrollbar-thin"
+        class="relative min-h-0 w-full flex-1 overflow-x-auto overflow-y-hidden bg-black [scrollbar-color:rgba(255,255,255,0.25)_transparent] scrollbar-thin"
         onScroll={(event) => {
           setStageScrollLeft(event.currentTarget.scrollLeft);
         }}
@@ -341,7 +381,7 @@ const App = () => {
           )}
         </For>
       </main>
-    </>
+    </div>
   );
 };
 

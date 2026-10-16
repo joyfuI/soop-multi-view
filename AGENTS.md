@@ -83,6 +83,7 @@ localStorage.setItem(
 pnpm exec biome check src/App.tsx src/Player.tsx
 node tests/ids.test.mjs
 node tests/playerGrid.test.mjs
+node tests/userscript.test.mjs
 pnpm run build
 pnpm run dev --host 127.0.0.1
 ```
@@ -114,3 +115,35 @@ pnpm run dev --host 127.0.0.1
 - `/alpha/user%2Fdirect%3FfromApi%3D0%23`처럼 인코딩된 공유 URL과 기존 저장 목록에서도 악성 ID를 제외하며 해당 ID의 SOOP 요청을 만들지 않아야 한다.
 - `node tests/ids.test.mjs`는 문자·길이 제한, 경로 이동 문자, URL·HTML·제어문자, 잘못된 퍼센트 인코딩, 저장 목록의 타입과 중복을 확인한다. Edge에서는 악성 입력 13종 거부, 정상 추가·중복·삭제, 공유 URL 필터링, 저장 목록 복원과 기존 iframe 유지를 확인했다.
 - 브라우저 회귀는 새 컨텍스트에서 외부 요청을 가로채 요청 URL과 저장 목록을 확인한다. 잘못된 퍼센트 인코딩은 Vite 개발 서버가 직접 URL 요청을 거부할 수 있으므로 앱의 `parseIds` 동작은 함수 호출 또는 History API 이동으로 분리해 확인한다.
+
+## 외부 iframe 로그인 진단
+
+2026-10-15에 배포 페이지에서 사용자가 직접 로그인한 뒤 Edge 155의 실제 로그인 응답과 쿠키 차단 사유를 확인했다. Firefox 155에서는 실제 계정 대신 같은 쿠키 속성을 가진 가짜 응답으로 비교했다.
+
+- 멀티뷰의 최상위 사이트는 `soop-multi-view.netlify.app`이고 플레이어는 `play.sooplive.com`이므로 SOOP 인증은 타사 컨텍스트에서 동작한다.
+- 채팅 입력으로 여는 일반 ID·비밀번호 로그인창은 SOOP iframe 내부의 `#layerLogin` 레이어다. SOOP의 로그인 요청은 `https://login.sooplive.com/app/LoginAction.php`에 POST하며 이미 `xhrFields: { withCredentials: true }`를 사용한다. 부모 앱의 요청 옵션을 바꾸는 것으로 이 요청의 쿠키 정책을 변경할 수 없다.
+- 확인한 SOOP `LiveView.js`의 `isLogin()`은 티켓 쿠키 존재 여부를 읽으며 SOOP의 `TICKET_COOKIE_NAME`은 `AuthTicket`이다. 로그인 응답 성공 여부와 iframe에서 인증 쿠키를 사용할 수 있는지는 별도로 확인해야 한다.
+- 실제 로그인 응답 두 건은 모두 `RESULT: 1`이었지만, `sooplive.com`용 `AuthTicket`·`BbsTicket`·`UserTicket`에 `SameSite`와 `Secure`가 없었다. Edge의 CDP `Network.responseReceivedExtraInfo`는 해당 쿠키들의 차단 사유를 `SchemefulSameSiteUnspecifiedTreatedAsLax`로 보고했으며 인증 쿠키는 저장되지 않았다.
+- 같은 응답의 `_au3rd`는 `SameSite=None; Secure`가 있어 저장됐다. 이 사례는 일반적인 타사 쿠키 허용 여부와 별개인 SameSite 제한이다. 부모 앱의 iframe 속성이나 Netlify 응답 헤더로 SOOP의 인증 쿠키 속성을 변경할 수 없다. 외부 iframe에서 쓰려면 SOOP 측 인증 쿠키에 `SameSite=None; Secure`가 필요하다.
+- 실제 서버 요청 없이 서로 다른 `.test` 사이트를 가로채 비교했다. Edge 155는 `SameSite` 미지정 쿠키를 거부하고 Firefox 155는 받아들였으며, `SameSite=None; Secure` 쿠키는 둘 다 받아들였다. 검사에 쓴 Playwright는 Firefox의 `network.cookie.sameSite.laxByDefault`를 `false`로 설정한다. 같은 날짜 [MDN의 Firefox 기능 문서](https://developer.mozilla.org/en-US/docs/Mozilla/Firefox/Experimental_features#samesitelax_by_default)도 이 기능의 기본값을 비활성으로 안내하지만, 사용자 Firefox 프로필의 실제 설정까지 검사한 것은 아니다.
+- 진단할 때는 격리된 브라우저에서 로그인 결과 코드와 쿠키 이름·속성·차단 사유만 추출한다. 비밀번호와 인증 쿠키 값은 조사 산출물에 기록하지 않는다. `document.hasStorageAccess()`는 이번 검사에서 `true`였으므로 이 값만으로 SameSite 제한까지 정상이라고 판단하지 않는다.
+
+## 로그인 보정 유저스크립트
+
+2026-10-15에 `public/soop-login-fix.user.js`를 추가했다. 배포 후 `/soop-login-fix.user.js`로 제공된다. 앱의 설치 안내에서는 Tampermonkey, Violentmonkey 또는 Greasemonkey의 공식 홈페이지를 연결한다. SOOP 및 이미 열려 있는 멀티뷰 페이지를 새로고침해야 적용된다.
+
+- 같은 날짜 실제 AdGuard가 주입한 스크립트로 익명 인증 요청을 검사했다. `GM_xmlhttpRequest`의 `finalUrl`은 SOOP 대신 `https://local.adguard.org`였고 `responseHeaders`에는 `Set-Cookie`가 없었다. 서버 원본 응답에는 쿠키 헤더가 있었으므로, AdGuard에서는 GM 응답 헤더를 읽어 인증 쿠키를 복원하는 방식에 의존하지 않는다.
+- 스크립트는 SOOP 도메인과 그 iframe, 멀티뷰 배포 주소에서 실행한다. 멀티뷰 페이지에서는 설치 확인 메시지에만 응답하며 인증 요청·쿠키·화질 스타일은 건드리지 않는다. `@noframes`를 추가하지 않는다. 관리자 권한은 `unsafeWindow`만 사용하며 `GM_xmlhttpRequest`와 `GM_cookie`에는 의존하지 않는다.
+- `play.sooplive.com`에서는 외부 삽입 모드의 `.quality_box`에 CSS를 주입해 화질 선택 메뉴를 표시한다. DOM 생성 전 실행되면 `DOMContentLoaded`에 스타일을 삽입하며 jQuery나 로그인 성공 여부에 의존하지 않는다. 일반 시청 페이지와 로그인 처리 창에는 화질 스타일을 적용하지 않는다.
+- 설치 확인은 멀티뷰 페이지의 자기 창에 `postMessage`로 요청하며 3초 뒤 한 번 재시도한다. 동일 origin·자기 창·임의 nonce·버전을 검증하고 v1 이상 응답이면 실행 중으로 판단한다. 플레이어의 준비 신호나 생성·삭제와 독립적으로 동작하므로 플레이어가 없어도 감지한다. 실제 로그인 성공 여부까지 진단하지는 않으며 응답 없음은 미설치·비활성·응답 기능 없는 스크립트를 구분하지 못한다.
+- 스크립트의 설치 확인 응답은 `https://soop-multi-view.netlify.app`에서 동일 origin의 자기 창 요청에만 보낸다. SOOP에서는 설치 확인 메시지에 응답하지 않는다. 배포 주소가 바뀌면 `appOrigin`과 `@match`도 갱신한다. 응답에는 버전과 요청 nonce만 포함하며 계정·쿠키 정보는 전달하지 않는다. 로컬 개발 주소에서는 스크립트 설치 여부를 감지할 수 없다.
+- 플레이어가 없으면 `UserscriptNotice`는 브라우저 종류·안내 닫기 기록과 무관하게 감지 상태와 설치 절차를 항상 표시한다. 플레이어가 있으면 브라우저 종류와 관계없이 미감지(`missing`) 상태에서 자동 안내를 표시한다. 브라우저 계열은 로그인 오류의 확정 근거로 사용하지 않는다. X로 닫으면 `localStorage`의 `userscript-notice-dismissed`에 기록하여 새로고침·다음 방문·다른 탭에서도 자동 안내를 숨긴다. 미감지 상태에서만 메뉴의 `유저 스크립트 안내` 버튼을 표시하며, 닫은 뒤에도 이 버튼으로 직접 다시 열 수 있다. 확인 중·감지됨 상태에서는 이 버튼을 표시하지 않는다.
+- 플레이어가 없는 화면의 안내는 화면 중앙에 배치한다. 플레이어가 있으면 상단 안내가 플레이어 영역 밖에서 공간을 차지한다. 설치 절차는 항상 메시지 오른쪽에 표시하며 좁은 화면에서는 아래에 배치한다. 기존 `ResizeObserver`와 배치 계산이 남은 높이에 맞춰 동작하므로 안내 표시·닫기 때 iframe을 다시 만들지 않는다.
+- SOOP 직접 로그인과 내부 로그인은 현재 전역 jQuery 3.7.1을 공유한다. `ajaxTransport`로 `https://login.sooplive.com/app/LoginAction.php`와 `/app/LogOut.php`만 처리하고, 쿠키 보정 후 SOOP의 기존 JSON/JSONP 변환과 성공·실패 처리를 호출한다. SOOP의 jQuery 구현이 바뀌면 연결을 재검증한다.
+- 최상위 SOOP 창에서는 표준 XHR을 사용한다. 멀티뷰 iframe에서는 `https://login.sooplive.com/afreeca/login.php`를 별도 창으로 열고 그 창에서 같은 요청을 한 번 전송한다. SOOP를 최상위 사이트로 만든 뒤 브라우저가 받은 쿠키를 보정하고 원래 iframe에 응답을 돌려준다. 처리 창은 응답·취소·타임아웃 시 닫는다. 멀티뷰에서 팝업과 타사 쿠키를 허용해야 한다.
+- 창 간 메시지는 양쪽에서 발신 창·정확한 SOOP origin·임의 nonce를 확인한다. 인증 정보는 URL·창 이름·로컬 저장소·로그에 추가하지 않고, 원래 SOOP iframe과 인증 처리 창 사이에서만 전달한다. 별도 창에서 받은 JSONP는 실행하지 않고 원래 jQuery converter에 반환한다.
+- 보정 대상은 `AuthTicket`, `BbsTicket`, `UserTicket`, `isBbs`, `RDB` 중 `sooplive.com` 도메인 쿠키다. 표준 Cookie Store API의 `cookieStore.set({ ...cookie, sameSite: 'none' })`가 Secure를 적용하면서 값·도메인·경로·세션 여부·만료일을 보존한다. Edge 155에서 확인했으며 HttpOnly를 제거해 우회하지 않는다. Cookie Store API가 없는 구형 브라우저는 지원하지 않는다. 로그아웃의 쿠키 만료는 브라우저에 맡긴다.
+- `node tests/soopLoginFix.test.mjs`는 쿠키 보존, 직접·iframe 로그인, JSON/JSONP, 추가 인증 결과 전달, 실패·취소·타임아웃·로그아웃, 팝업 차단, 메시지 출처 검증과 중복 설치, 화질 CSS의 실행 범위·DOM 생성 대기·중복 삽입 방지를 검사한다. Edge 155에서는 실제 SOOP 로그인 HTML을 처리 창으로 열고 인증 응답만 가짜로 대체해 티켓의 `SameSite=None; Secure`, iframe 사용 가능 여부, 중복 요청 없음과 처리 창 종료를 확인했다.
+- `node tests/userscript.test.mjs`는 브라우저 계열, 자기 창 감지, 재시도·타임아웃, 출처·창·nonce·버전 검증, 중복·지연 응답, 재시작과 타이머 정리를 검사한다. 스크립트 쪽 요청 출처와 응답 내용, SOOP에서 감지 응답 미전송, 멀티뷰에서 인증 처리 미실행은 `node tests/soopLoginFix.test.mjs`에서 함께 검사한다. 브라우저 회귀에서는 외부 요청을 테스트 응답으로 대체해 빈 화면의 감지·미감지, 설치 절차, 자동 안내 조건, 닫기 기록의 새로고침·새 탭·탭 간 동기화, 미감지 상태에서만 메뉴 버튼 표시, 메뉴 재열기, 모바일, 안내 높이 반영과 기존 iframe 유지를 확인한다.
+- 배포 주소 전용 감지를 로컬에서 검증할 때는 Playwright의 요청 가로채기로 `https://soop-multi-view.netlify.app`의 HTML·자산을 빌드된 `dist/` 파일로 응답한다. SOOP iframe은 `PonReady`·`Pload`를 처리하는 테스트 HTML로 대체하고, 감지 요청·응답이 없으며 플레이어 추가·삭제가 자기 창의 감지 결과를 바꾸지 않는지 확인한다.
+- 수정본을 문서 시작에 주입한 별도 Edge에서 사용자가 직접 실계정으로 로그인했고 성공했다고 확인했다. Tampermonkey 설치본의 실계정 로그인과 추가 인증은 아직 확인하지 않았다.
