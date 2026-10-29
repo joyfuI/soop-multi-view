@@ -14,19 +14,19 @@
   },
   "dependencies": {
     "@solidjs/router": "^1.0.0",
-    "@tanstack/solid-query": "^5.104.0",
-    "@tanstack/solid-query-devtools": "^5.104.0",
-    "solid-js": "^1.9.15"
+    "@tanstack/solid-query": "^5.105.0",
+    "@tanstack/solid-query-devtools": "^5.105.0",
+    "solid-js": "^1.9.17"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.14",
+    "@biomejs/biome": "^2.6.3",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^26.6.3",
+    "@types/node": "^26.6.5",
     "solid-devtools": "^0.34.5",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
-    "vite": "^8.3.1",
+    "vite": "^8.3.5",
     "vite-plugin-solid": "^2.11.14"
   },
-  "packageManager": "pnpm@12.8.1+sha512.f64ba907507f5ceafe06c8d38e6052d0179444580ec1279ddd5bfc11cb48aa8a2644b66598e07e761da84872a9fc57d5f902b87fa49d024198d558612aabbe45"
+  "packageManager": "pnpm@12.16.1"
 }

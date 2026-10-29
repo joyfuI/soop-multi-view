@@ -73,7 +73,9 @@ Firefox만으로 검증하지 않는다. 자동재생 정책 문제가 발생하
 const ids = ['id1', 'id2'];
 localStorage.setItem(
   'state',
-  JSON.stringify(Object.fromEntries(ids.map((id) => [id, { display: 'minimized' }]))),
+  JSON.stringify(
+    Object.fromEntries(ids.map((id) => [id, { display: 'minimized' }])),
+  ),
 );
 ```
 
