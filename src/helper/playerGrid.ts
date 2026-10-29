@@ -7,8 +7,14 @@ export const getMaximizedGrid = (
   width: number,
   height: number,
 ) => {
-  const isChatVisible = (id: string) => chatVisibility[id] ?? true;
-  const openIds = ids.filter(isChatVisible);
+  const openIndices: number[] = [];
+  const closedIndices: number[] = [];
+  const openChatCounts = [0];
+  ids.forEach((id, index) => {
+    const visible = chatVisibility[id] ?? true;
+    (visible ? openIndices : closedIndices).push(index);
+    openChatCounts.push(openChatCounts[index] + Number(visible));
+  });
   let columnCount = 1;
   let videoWidth = 0;
   let lastRowOpenChats: number | undefined;
@@ -19,11 +25,12 @@ export const getMaximizedGrid = (
     let candidateWidth = (height / rows) * PLAYER_ASPECT_RATIO;
 
     for (let row = 0; row < rows; row += 1) {
-      const rowIds = ids.slice(row * columns, (row + 1) * columns);
-      const openChats = rowIds.filter(isChatVisible).length;
+      const start = row * columns;
+      const end = Math.min(start + columns, ids.length);
+      const openChats = openChatCounts[end] - openChatCounts[start];
       candidateWidth = Math.min(
         candidateWidth,
-        (width - openChats * PLAYER_CHAT_WIDTH) / rowIds.length,
+        (width - openChats * PLAYER_CHAT_WIDTH) / (end - start),
       );
     }
 
@@ -40,8 +47,11 @@ export const getMaximizedGrid = (
   for (let columns = 1; columns < ids.length; columns += 1) {
     const fullRows = Math.ceil(ids.length / columns) - 1;
     const lastRowSize = ids.length - fullRows * columns;
-    const minLastRowChats = Math.max(0, openIds.length - fullRows * columns);
-    const maxLastRowChats = Math.min(openIds.length, lastRowSize);
+    const minLastRowChats = Math.max(
+      0,
+      openIndices.length - fullRows * columns,
+    );
+    const maxLastRowChats = Math.min(openIndices.length, lastRowSize);
 
     // Full rows share chats evenly; only the shorter last row needs a search.
     for (
@@ -49,7 +59,9 @@ export const getMaximizedGrid = (
       lastChats <= maxLastRowChats;
       lastChats += 1
     ) {
-      const fullRowChats = Math.ceil((openIds.length - lastChats) / fullRows);
+      const fullRowChats = Math.ceil(
+        (openIndices.length - lastChats) / fullRows,
+      );
       const candidateWidth = Math.min(
         (height / (fullRows + 1)) * PLAYER_ASPECT_RATIO,
         (width - fullRowChats * PLAYER_CHAT_WIDTH) / columns,
@@ -70,7 +82,6 @@ export const getMaximizedGrid = (
 
   const rowCount = Math.ceil(ids.length / columnCount);
   const rows: string[][] = [];
-  const closedIds = ids.filter((id) => !isChatVisible(id));
   let openIndex = 0;
   let closedIndex = 0;
 
@@ -85,13 +96,17 @@ export const getMaximizedGrid = (
       row === rowCount - 1
         ? lastRowOpenChats
         : Math.ceil(
-            (openIds.length - openIndex - lastRowOpenChats) /
+            (openIndices.length - openIndex - lastRowOpenChats) /
               (rowCount - row - 1),
           );
-    rows.push([
-      ...openIds.slice(openIndex, openIndex + openChats),
-      ...closedIds.slice(closedIndex, closedIndex + rowSize - openChats),
-    ]);
+    rows.push(
+      [
+        ...openIndices.slice(openIndex, openIndex + openChats),
+        ...closedIndices.slice(closedIndex, closedIndex + rowSize - openChats),
+      ]
+        .sort((a, b) => a - b)
+        .map((index) => ids[index]),
+    );
     openIndex += openChats;
     closedIndex += rowSize - openChats;
   }

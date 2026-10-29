@@ -33,6 +33,25 @@ assert.deepEqual(getMaximizedGrid([], {}, 1920, 1080), {
   videoWidth: 0,
 });
 
+const urlIds = ['dlsn9911', 'kgoyangyeeee', 'yangdoki', 'toocat030'];
+const offFirstVisibility = {
+  dlsn9911: false,
+  kgoyangyeeee: false,
+  yangdoki: true,
+  toocat030: true,
+};
+assert.deepEqual(getMaximizedGrid(urlIds, offFirstVisibility, 1912, 901), {
+  rows: [
+    ['dlsn9911', 'yangdoki'],
+    ['kgoyangyeeee', 'toocat030'],
+  ],
+  videoWidth: 800.88,
+});
+assert.deepEqual(
+  getMaximizedGrid(urlIds, offFirstVisibility, 1912, 720).rows.flat(),
+  urlIds,
+);
+
 const partial = getMaximizedGrid(
   ['a', 'b', 'c', 'd', 'e'],
   { a: true, b: true, c: true, d: false, e: false },
@@ -56,7 +75,11 @@ const exhaustiveWidth = (count, chats, width, height) => {
         return;
       }
       const size = Math.min(columns, count - row * columns);
-      for (let open = 0; open <= Math.min(size, remainingChats); open += 1) {
+      for (
+        let open = Math.max(0, remainingChats - (count - row * columns - size));
+        open <= Math.min(size, remainingChats);
+        open += 1
+      ) {
         visit(
           row + 1,
           remainingChats - open,
@@ -70,29 +93,41 @@ const exhaustiveWidth = (count, chats, width, height) => {
 };
 
 let cases = 0;
-for (let count = 1; count <= 9; count += 1) {
-  const players = Array.from({ length: count }, (_, index) => `p${index}`);
-  for (let chats = 0; chats <= count; chats += 1) {
-    const visible = Object.fromEntries(
-      players.map((id, index) => [id, index < chats]),
+for (let count = 1; count <= 12; count += 1) {
+  const players = Object.freeze(
+    Array.from({ length: count }, (_, index) => `p${index}`),
+  );
+  for (const [width, height] of [
+    [390, 844],
+    [800, 600],
+    [1912, 901],
+    [1920, 1080],
+    [1080, 1920],
+    [3000, 1080],
+    [1001.37, 671.23],
+  ]) {
+    const bestWidths = Array.from({ length: count + 1 }, (_, chats) =>
+      exhaustiveWidth(count, chats, width, height),
     );
-    for (const [width, height] of [
-      [800, 600],
-      [1920, 1080],
-      [1080, 1920],
-      [3000, 1080],
-    ]) {
-      const grid = getMaximizedGrid(players, visible, width, height);
-      assert.ok(
-        Math.abs(
-          grid.videoWidth - exhaustiveWidth(count, chats, width, height),
-        ) < 0.021,
+    for (let mask = 0; mask < 2 ** count; mask += 1) {
+      const visible = Object.freeze(
+        Object.fromEntries(
+          players.map((id, index) => [id, Boolean(mask & (1 << index))]),
+        ),
       );
+      const chats = players.filter((id) => visible[id]).length;
+      const grid = getMaximizedGrid(players, visible, width, height);
+      assert.ok(Math.abs(grid.videoWidth - bestWidths[chats]) < 0.021);
       assert.deepEqual(grid.rows.flat().toSorted(), players.toSorted());
       assert.ok(
         (grid.rows.length * grid.videoWidth) / PLAYER_ASPECT_RATIO <= height,
       );
       for (const row of grid.rows) {
+        const positions = row.map((id) => players.indexOf(id));
+        assert.deepEqual(
+          positions,
+          positions.toSorted((a, b) => a - b),
+        );
         const rowWidth =
           row.length * grid.videoWidth +
           row.filter((id) => visible[id]).length * PLAYER_CHAT_WIDTH;
