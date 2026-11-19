@@ -4,9 +4,10 @@ import {
   createMemo,
   createSignal,
   For,
-  onCleanup,
-  onMount,
+  latest,
+  onSettled,
   Show,
+  untrack,
 } from 'solid-js';
 
 import Menu from './components/Menu';
@@ -70,9 +71,6 @@ const App = () => {
     height: 0,
   });
   const [stageScrollLeft, setStageScrollLeft] = createSignal(0);
-  const [playerLayouts, setPlayerLayouts] = createSignal<
-    Record<string, PlayerLayout>
-  >({});
   const [playerChatVisibility, setPlayerChatVisibility] = createSignal<
     Record<string, boolean>
   >({});
@@ -90,19 +88,25 @@ const App = () => {
 
   const setIds = (newIds: string[]) => {
     const normalizedIds = normalizeIds(newIds);
+    const path = makeIdsPath(normalizedIds);
     setList(normalizedIds);
-    navigate(makeIdsPath(normalizedIds), { replace: true });
+    if (path !== untrack(() => location.pathname)) {
+      navigate(path, { replace: true });
+    }
   };
 
-  createEffect(() => {
-    if (location.pathname === '/') {
-      setIds(list());
-      return;
-    }
-    setList(ids());
-  });
+  createEffect(
+    () => {
+      const restore = location.pathname === '/';
+      return { currentIds: restore ? list() : ids(), restore };
+    },
+    ({ currentIds, restore }) => {
+      if (restore) setIds(currentIds);
+      else setList(currentIds);
+    },
+  );
 
-  onMount(() => {
+  onSettled(() => {
     const handleMessage = (event: MessageEvent) => {
       userscriptCheck.receive(event);
       if (event.origin === 'https://play.sooplive.com') {
@@ -140,10 +144,34 @@ const App = () => {
     window.addEventListener('message', handleMessage);
     userscriptCheck.checkPage();
 
-    onCleanup(() => {
+    return () => {
       window.removeEventListener('message', handleMessage);
       userscriptCheck.dispose();
+    };
+  });
+
+  onSettled(() => {
+    const updateStageSize = () => {
+      const { clientHeight: height, clientWidth: width } = playerStage;
+      setStageSize((size) =>
+        size.height === height && size.width === width
+          ? size
+          : { height, width },
+      );
+    };
+
+    // 배치가 스크롤바를 바꿀 수 있으므로 다음 프레임에서 측정한다.
+    let frame = 0;
+    const resizeObserver = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(updateStageSize);
     });
+    resizeObserver.observe(playerStage);
+    updateStageSize();
+    return () => {
+      resizeObserver.disconnect();
+      cancelAnimationFrame(frame);
+    };
   });
 
   const handleAdd = (id: string) => {
@@ -182,7 +210,10 @@ const App = () => {
     id: string,
     displayState: MenuItemDisplayState,
   ) => {
-    setState({ ...state(), [id]: { ...state()?.[id], display: displayState } });
+    setState((previous) => ({
+      ...previous,
+      [id]: { ...previous?.[id], display: displayState },
+    }));
   };
 
   const minimizedIds = createMemo(() => {
@@ -206,35 +237,44 @@ const App = () => {
     };
   });
 
-  createEffect(() => {
-    const currentIds = ids();
-    const currentState = state();
-    const currentChatVisibility = playerChatVisibility();
-    const { width: containerWidth, height: containerHeight } = stageSize();
-    const metrics = minimizedMetrics();
-    const maximizedIds = currentIds.filter(
-      (id) => getDisplayState(currentState, id) === 'maximized',
+  const safeScrollLeft = createMemo(() => {
+    const maxScrollLeft = Math.max(
+      0,
+      minimizedMetrics().contentWidth - stageSize().width,
     );
-    const currentMinimizedIds = minimizedIds();
+    return Math.min(stageScrollLeft(), maxScrollLeft);
+  });
 
-    if (containerWidth <= 0 || containerHeight <= 0) return;
-
-    const maxScrollLeft = Math.max(0, metrics.contentWidth - containerWidth);
-    const safeScrollLeft = Math.min(stageScrollLeft(), maxScrollLeft);
-
-    if (playerStage && playerStage.scrollLeft !== safeScrollLeft) {
-      playerStage.scrollLeft = safeScrollLeft;
-      setStageScrollLeft(safeScrollLeft);
+  createEffect(safeScrollLeft, (scrollLeft) => {
+    if (playerStage && playerStage.scrollLeft !== scrollLeft) {
+      playerStage.scrollLeft = scrollLeft;
+      setStageScrollLeft(scrollLeft);
     }
+  });
 
-    setPlayerLayouts((previousLayouts) => {
+  const playerLayouts = createMemo<Record<string, PlayerLayout>>(
+    (previousLayouts) => {
+      const { width: containerWidth, height: containerHeight } = stageSize();
+      if (containerWidth <= 0 || containerHeight <= 0)
+        return previousLayouts ?? {};
+
+      const currentIds = ids();
+      const currentState = state();
+      const currentChatVisibility = playerChatVisibility();
+      const metrics = minimizedMetrics();
+      const scrollLeft = safeScrollLeft();
+      const maximizedIds = currentIds.filter(
+        (id) => getDisplayState(currentState, id) === 'maximized',
+      );
+      const currentMinimizedIds = minimizedIds();
+
       const nextLayouts: Record<string, PlayerLayout> = {};
 
       for (const id of currentIds) {
-        nextLayouts[id] = previousLayouts[id] ?? {
+        nextLayouts[id] = previousLayouts?.[id] ?? {
           height: containerWidth / PLAYER_ASPECT_RATIO,
           width: containerWidth,
-          x: safeScrollLeft,
+          x: scrollLeft,
           y: 0,
         };
       }
@@ -262,7 +302,7 @@ const App = () => {
               ((currentChatVisibility[id] ?? true) ? PLAYER_CHAT_WIDTH : 0),
             0,
           );
-          let tileX = safeScrollLeft + (containerWidth - rowWidth) / 2;
+          let tileX = scrollLeft + (containerWidth - rowWidth) / 2;
 
           for (const id of rowIds) {
             const tileWidth =
@@ -290,18 +330,27 @@ const App = () => {
       });
 
       return nextLayouts;
-    });
-  });
+    },
+  );
 
   return (
     <div class="flex h-dvh flex-col overflow-hidden bg-black">
       <Menu
-        data={ids().map((item, index) => ({
-          id: item,
-          name: stationInfoQueries[index]?.data?.station.userNick ?? item,
-          online: !!homeBroadQueries[index]?.data,
-          displayState: state()[item]?.display ?? 'maximized',
-        }))}
+        data={ids().map((item, index) => {
+          const stationInfo = stationInfoQueries[index];
+          const homeBroad = homeBroadQueries[index];
+          // 메타데이터를 기다리는 동안에도 메뉴와 플레이어를 표시한다.
+          return {
+            id: item,
+            name: stationInfo?.dataUpdatedAt
+              ? (latest(() => stationInfo.data)?.station.userNick ?? item)
+              : item,
+            online: !!(
+              homeBroad?.dataUpdatedAt && latest(() => homeBroad.data)
+            ),
+            displayState: state()[item]?.display ?? 'maximized',
+          };
+        })}
         onAdd={handleAdd}
         onDelete={handleDelete}
         onDisplayStateChange={handleDisplayStateChange}
@@ -332,25 +381,7 @@ const App = () => {
         onScroll={(event) => {
           setStageScrollLeft(event.currentTarget.scrollLeft);
         }}
-        ref={(element) => {
-          playerStage = element;
-
-          const updateStageSize = () => {
-            setStageSize({
-              height: element.clientHeight,
-              width: element.clientWidth,
-            });
-          };
-
-          const resizeObserver = new ResizeObserver(updateStageSize);
-
-          resizeObserver.observe(element);
-          updateStageSize();
-
-          onCleanup(() => {
-            resizeObserver.disconnect();
-          });
-        }}
+        ref={playerStage}
       >
         <div
           aria-hidden="true"

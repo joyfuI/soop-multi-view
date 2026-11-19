@@ -95,6 +95,17 @@ pnpm run dev --host 127.0.0.1
 - 브라우저 자동화 산출물은 `output/playwright/` 아래에 만들고 검증이 끝나면 제거한다.
 - 광고 차단 확장 프로그램에서 발생하는 `broadcast_information` timeout 같은 오류는 앱 오류와 구분한다.
 
+## Solid 2 마이그레이션 회귀
+
+2026-11-19에 Solid 2.0.0 설치본의 시그널과 DOM 속성 처리를 확인했다.
+
+- 시그널 변경 직후에는 직전 값이 읽힌다. `/`에서 저장 목록을 복원할 때 정규화한 ID를 저장과 이동에 함께 사용하고, 빈 목록은 `/`에서 유지한다. Chromium에서 저장 목록 복원, `/id1/id2` 직접 접속, ID 추가·삭제, 같은 탭과 다른 탭의 저장 상태 동기화를 확인한다. [Solid 2 마이그레이션 가이드](https://github.com/solidjs/solid/blob/main/documentation/solid-2.0/MIGRATION.md#batch--default-microtask-batching--flush)
+- 한 이벤트에서 여러 표시 상태를 바꿀 때는 함수형 스토리지 setter가 현재 저장소 값을 읽어 변경을 누적한다. `온라인 플레이어 모두 확대`로 두 플레이어를 변경하고 화면과 저장소에 두 변경이 모두 반영되는지 확인한다.
+- Solid 2의 `ref` 콜백에는 반응성 소유자가 없다. `ref`로 플레이어 영역을 받고 `onSettled`에서 초기 크기 측정과 `ResizeObserver` 등록을 수행한 뒤 정리 함수를 반환한다. 배치 변경이 스크롤바에 영향을 줄 수 있으므로 이후 측정은 다음 애니메이션 프레임에 예약한다. 안내 표시·닫기와 창 크기 변경 후 기존 iframe의 위치와 크기가 갱신되는지 확인한다. [Solid 2 ref 마이그레이션](https://github.com/solidjs/solid/blob/main/documentation/solid-2.0/MIGRATION.md#ref-callbacks-no-longer-owned)
+- Solid 2의 DOM 속성 처리에서 불리언 `true`는 빈 속성을 만들고 `false`는 속성을 제거한다. 플레이어의 `data-chat-visible`에는 문자열 `"true"`·`"false"`를 사용하고 채팅 토글 후 속성값과 iframe 너비를 함께 확인한다.
+- TanStack Solid Query v6에서 첫 응답 전의 `.data` 읽기는 렌더링을 대기시킬 수 있다. 방송·닉네임 테스트 응답을 지연하거나 실패시켜 메뉴와 iframe이 곧바로 표시되고, 성공한 응답이 나중에 메뉴에 반영되는지 확인한다. [TanStack Query v6 비동기 동작](https://github.com/TanStack/query/pull/11308)
+- 2026-11-19 Edge 157에서 개발 서버와 프로덕션 빌드의 SOOP 메타데이터·iframe을 테스트 응답으로 대체했다. 저장 목록 복원과 마지막 ID 삭제, 응답 지연 중 `PonReady` → `Pload`와 채팅 자르기, 안내 표시·닫기와 창 크기 변경에 따른 배치, 일괄 확대·탭 간 동기화와 기존 iframe 유지를 확인했다. 개발 모드에서는 Query Devtools 초기화의 `STRICT_READ_UNTRACKED`와 연속 URL 변경의 `EFFECT_RELAY_TEAR`가 표시됐다.
+
 ## 채팅 상태별 확대 배치 회귀
 
 2026-10-01에 추가한 계산 검증은 `node tests/playerGrid.test.mjs`로 실행한다. Node의 기본 TypeScript 실행 기능을 사용하며 별도 테스트 라이브러리는 필요 없다.

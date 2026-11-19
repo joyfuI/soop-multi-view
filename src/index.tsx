@@ -1,9 +1,8 @@
 /* @refresh reload */
-import 'solid-devtools';
-import { Route, Router } from '@solidjs/router';
+import { createRouter } from '@solidjs/router';
+import { render } from '@solidjs/web';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
 import { SolidQueryDevtools } from '@tanstack/solid-query-devtools';
-import { render } from 'solid-js/web';
 
 import App from './App';
 import './index.css';
@@ -13,14 +12,14 @@ if (!root) {
   throw new Error('Root element not found.');
 }
 
+const Router = createRouter({ routes: [{ path: '/*', component: App }] });
+
 const queryClient = new QueryClient();
 
 render(
   () => (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <Route component={App} path="/*" />
-      </Router>
+      <Router />
       <SolidQueryDevtools />
     </QueryClientProvider>
   ),

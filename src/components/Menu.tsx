@@ -115,14 +115,14 @@ const Menu = (props: MenuProps) => {
           </fieldset>
 
           <ul class="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto [scrollbar-color:rgba(255,255,255,0.25)_transparent] scrollbar-thin">
-            <For each={props.data}>
+            <For each={props.data} keyed={(item) => item.id}>
               {(item) => (
                 <MenuItem
-                  displayState={item.displayState}
-                  name={item.name}
-                  onDelete={handleDelete(item.id)}
-                  onDisplayStateChange={handleDisplayStateChange(item.id)}
-                  online={item.online}
+                  displayState={item().displayState}
+                  name={item().name}
+                  onDelete={handleDelete(item().id)}
+                  onDisplayStateChange={handleDisplayStateChange(item().id)}
+                  online={item().online}
                 />
               )}
             </For>

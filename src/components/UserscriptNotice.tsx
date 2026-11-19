@@ -30,8 +30,7 @@ const UserscriptNotice = (props: UserscriptNoticeProps) => {
       }`}
     >
       <div
-        class="flex flex-col gap-4 md:flex-row"
-        classList={{ 'pr-8': !props.empty }}
+        class={['flex flex-col gap-4 md:flex-row', { 'pr-8': !props.empty }]}
       >
         <div class="min-w-0 md:flex-1" role="status">
           <p class="m-0 text-sm font-medium">{title()}</p>

@@ -1,4 +1,4 @@
-import { createEffect, createSignal, onCleanup } from 'solid-js';
+import { createEffect, createSignal, onSettled, untrack } from 'solid-js';
 
 import {
   ChatIcon,
@@ -29,9 +29,8 @@ const Player = (props: PlayerProps) => {
   let iframe: HTMLIFrameElement | undefined;
 
   const [isChatVisible, setIsChatVisible] = createSignal(
-    props.displayState !== 'minimized',
+    untrack(() => props.displayState !== 'minimized'),
   );
-  let previousDisplayState = props.displayState;
 
   const handleRefresh = () => {
     if (iframe) {
@@ -59,27 +58,29 @@ const Player = (props: PlayerProps) => {
     );
   };
 
-  createEffect(() => {
-    const displayState = props.displayState;
-    const wasMinimized = previousDisplayState === 'minimized';
+  createEffect(
+    () => props.displayState,
+    (displayState, previousDisplayState) =>
+      untrack(() => {
+        if (displayState === 'minimized') {
+          updateChatVisibility(false);
+        } else if (
+          displayState === 'maximized' &&
+          previousDisplayState === 'minimized'
+        ) {
+          updateChatVisibility(true);
+        }
+      }),
+  );
 
-    previousDisplayState = displayState;
-
-    if (displayState === 'minimized') {
-      updateChatVisibility(false);
-    } else if (displayState === 'maximized' && wasMinimized) {
-      updateChatVisibility(true);
-    }
-  });
-
-  onCleanup(() => {
+  onSettled(() => () => {
     props.ref(undefined);
   });
 
   return (
     <div
       class="group absolute top-0 left-0 overflow-hidden bg-black"
-      data-chat-visible={isChatVisible()}
+      data-chat-visible={isChatVisible() ? 'true' : 'false'}
       data-display-state={props.displayState}
       data-player-id={props.id}
       style={{

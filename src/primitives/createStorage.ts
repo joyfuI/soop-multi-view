@@ -1,4 +1,4 @@
-import { createMemo, createSignal, onCleanup, onMount } from 'solid-js';
+import { createMemo, createSignal, onSettled } from 'solid-js';
 
 type StorageEventType = 'localstorage' | 'sessionstorage';
 type CustomStorageEvent = CustomEvent<{ key: string }>;
@@ -37,13 +37,14 @@ const createStorage = <T>(
     }
   };
 
-  onMount(() => {
+  onSettled(() => {
     window.addEventListener('storage', handleStorageEvent); // 다른 탭
     window.addEventListener(eventType, handleStorageEvent); // 같은 탭
-    onCleanup(() => {
+    syncItem();
+    return () => {
       window.removeEventListener('storage', handleStorageEvent);
       window.removeEventListener(eventType, handleStorageEvent);
-    });
+    };
   });
 
   const getInitialValue = (): T =>
@@ -51,8 +52,7 @@ const createStorage = <T>(
       ? (initialValue as () => T)()
       : initialValue;
 
-  const storedValue = createMemo<T>(() => {
-    const currentItem = item();
+  const readValue = (currentItem: string | null): T => {
     try {
       return currentItem !== null
         ? (JSON.parse(currentItem) as T)
@@ -60,12 +60,14 @@ const createStorage = <T>(
     } catch {
       return getInitialValue();
     }
-  });
+  };
+
+  const storedValue = createMemo(() => readValue(item()));
 
   const setValue = (newValue: T | ((oldValue: T) => T)) => {
     const value =
       typeof newValue === 'function'
-        ? (newValue as (oldValue: T) => T)(storedValue())
+        ? (newValue as (oldValue: T) => T)(readValue(storage.getItem(key)))
         : newValue;
     storage.setItem(key, JSON.stringify(value));
     window.dispatchEvent(new CustomEvent(eventType, { detail: { key } })); // 커스텀 이벤트 발생

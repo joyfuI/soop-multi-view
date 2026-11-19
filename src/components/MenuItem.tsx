@@ -35,7 +35,7 @@ const MenuItem = (props: MenuItemProps) => {
         <legend class="sr-only">{props.name} 화면</legend>
         <button
           aria-label={`${props.name} 숨기기`}
-          aria-pressed={props.displayState === 'hidden'}
+          aria-pressed={props.displayState === 'hidden' ? 'true' : 'false'}
           class={stateButtonClass(props.displayState === 'hidden')}
           onClick={() => props.onDisplayStateChange?.('hidden')}
           title="숨기기"
@@ -45,7 +45,7 @@ const MenuItem = (props: MenuItemProps) => {
         </button>
         <button
           aria-label={`${props.name} 축소`}
-          aria-pressed={props.displayState === 'minimized'}
+          aria-pressed={props.displayState === 'minimized' ? 'true' : 'false'}
           class={stateButtonClass(props.displayState === 'minimized')}
           onClick={() => props.onDisplayStateChange?.('minimized')}
           title="축소"
@@ -55,7 +55,7 @@ const MenuItem = (props: MenuItemProps) => {
         </button>
         <button
           aria-label={`${props.name} 확대`}
-          aria-pressed={props.displayState === 'maximized'}
+          aria-pressed={props.displayState === 'maximized' ? 'true' : 'false'}
           class={stateButtonClass(props.displayState === 'maximized')}
           onClick={() => props.onDisplayStateChange?.('maximized')}
           title="확대"
