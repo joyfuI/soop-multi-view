@@ -22,6 +22,7 @@ import {
 import {
   createUserscriptCheck,
   getBrowserFamily,
+  MIN_VERSION,
   type UserscriptStatus,
 } from './helper/userscript';
 import type { PlayerLayout } from './Player';
@@ -54,8 +55,11 @@ const App = () => {
   const [userscriptStatus, setUserscriptStatus] =
     createSignal<UserscriptStatus>('checking');
   const [userscriptGuideOpen, setUserscriptGuideOpen] = createSignal(false);
-  const [userscriptNoticeDismissed, setUserscriptNoticeDismissed] =
-    createLocalStorage('userscript-notice-dismissed', false);
+  const [dismissedUserscriptVersion, setDismissedUserscriptVersion] =
+    createLocalStorage<number | null>(
+      'userscript-notice-dismissed-version',
+      null,
+    );
   const userscriptCheck = createUserscriptCheck((status) => {
     setUserscriptStatus(status);
     if (status === 'active') setUserscriptGuideOpen(false);
@@ -67,7 +71,7 @@ const App = () => {
   const showUserscriptNotice = () =>
     ids().length === 0 ||
     (userscriptNeedsAttention() &&
-      (userscriptGuideOpen() || !userscriptNoticeDismissed()));
+      (userscriptGuideOpen() || dismissedUserscriptVersion() !== MIN_VERSION));
 
   const [stageSize, setStageSize] = createSignal<StageSize>({
     width: 0,
@@ -374,7 +378,7 @@ const App = () => {
           chromium={browserFamily === 'chromium'}
           empty={ids().length === 0}
           onClose={() => {
-            setUserscriptNoticeDismissed(true);
+            setDismissedUserscriptVersion(MIN_VERSION);
             setUserscriptGuideOpen(false);
           }}
           status={userscriptStatus()}

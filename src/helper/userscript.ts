@@ -1,6 +1,6 @@
 export type UserscriptStatus = 'checking' | 'missing' | 'outdated' | 'active';
 
-const MIN_VERSION = 2;
+export const MIN_VERSION = 2;
 
 export const getBrowserFamily = (browser: {
   userAgent: string;
