@@ -249,9 +249,9 @@ for (const isolated of [false, true]) {
   assert.deepEqual(JSON.parse(JSON.stringify(response.data)), {
     type: 'soop-multi-view:userscript-ready',
     nonce: check.nonce,
-    version: 1,
+    version: 2,
   });
-  assert.match(source, /^\/\/ @version\s+1$/m);
+  assert.match(source, /^\/\/ @version\s+2$/m);
   app.runAgain();
   app.dispatch(app.page, check, origin, app.page);
   assert.equal(app.messages.length, 2);
@@ -282,8 +282,9 @@ for (const isolated of [false, true]) {
   assert.equal(quality.styles[0].tagName, 'style');
   assert.match(
     quality.styles[0].textContent,
-    /^\.embeded_mode #webplayer #player \.right_ctrl \.quality_box \{ display: block !important; \}$/,
+    /\.embeded_mode #webplayer #player \.right_ctrl \.quality_box \{ display: block !important; \}/,
   );
+  assert.match(quality.styles[0].textContent, /\.btn_pip_mode:not\(\[hidden\]/);
   quality.runAgain();
   assert.equal(quality.styles.length, 1);
 
@@ -321,6 +322,276 @@ for (const isolated of [false, true]) {
       undefined,
     );
   }
+}
+
+{
+  const { page, warnings } = createHarness({ isolated: true, embedded: true });
+  const info = {
+    get isEmbed() {
+      return true;
+    },
+    isSupportLowLatencyMode() {
+      return !(this.isEmbed || this.bUsePlaybackApi || this.isPPV);
+    },
+  };
+  const embedGetter = Object.getOwnPropertyDescriptor(info, 'isEmbed').get;
+  const timeShift = {
+    requests: [],
+    canUserUseTimeShift: false,
+    isTimeShiftShow() {
+      return !info.isBreakTime;
+    },
+    _checkInfo(url) {
+      return !info.isEmbed && !info.unsupportedMac && url.endsWith('.m3u8');
+    },
+    async setTimeShiftInfo() {
+      if (
+        info.isDashBoard ||
+        info.isEmbed ||
+        !this._checkInfo(info.szTimeShiftUrl)
+      )
+        return;
+      if (info.failed) throw new Error('initialization failed');
+      await Promise.resolve();
+      assert.equal(info.isEmbed, true);
+      if (info.entitled) this.requests.push(info.szTimeShiftUrl);
+    },
+  };
+  page.livePlayer = null;
+  page.livePlayer = {
+    externalInterface: { getPlayerInfo: () => info },
+    timeShift,
+  };
+  assert.equal(timeShift.isTimeShiftShow(), false);
+  timeShift.canUserUseTimeShift = true;
+  assert.equal(timeShift.isTimeShiftShow(), true);
+  info.isBreakTime = true;
+  assert.equal(timeShift.isTimeShiftShow(), false);
+
+  assert.equal(info.isSupportLowLatencyMode(), true);
+  info.isPPV = true;
+  assert.equal(info.isSupportLowLatencyMode(), false);
+  info.isPPV = false;
+  info.bUsePlaybackApi = true;
+  assert.equal(info.isSupportLowLatencyMode(), false);
+  assert.equal(info.isEmbed, true);
+
+  await timeShift.setTimeShiftInfo();
+  info.szTimeShiftUrl = 'https://media.test/archive.m3u8';
+  await timeShift.setTimeShiftInfo();
+  assert.deepEqual(timeShift.requests, []);
+  info.entitled = true;
+  info.unsupportedMac = true;
+  await timeShift.setTimeShiftInfo();
+  assert.deepEqual(timeShift.requests, []);
+  info.unsupportedMac = false;
+  info.failed = true;
+  await assert.rejects(timeShift.setTimeShiftInfo(), /initialization failed/);
+  assert.equal(
+    Object.getOwnPropertyDescriptor(info, 'isEmbed').get,
+    embedGetter,
+  );
+  info.failed = false;
+  const pending = timeShift.setTimeShiftInfo();
+  assert.equal(info.isEmbed, true);
+  await pending;
+  assert.deepEqual(timeShift.requests, [info.szTimeShiftUrl]);
+
+  const viewInfo = {
+    mode: 'direct',
+    get bEmbed() {
+      return this.mode === 'direct';
+    },
+  };
+  const viewEmbedGetter = Object.getOwnPropertyDescriptor(
+    viewInfo,
+    'bEmbed',
+  ).get;
+  const checkbox = new EventTarget();
+  checkbox.checked = false;
+  page.document.getElementById = (id) =>
+    id === 'clear_screen' ? checkbox : null;
+  let storedPreference = true;
+  let nativeClicks = 0;
+  page.jQuery = (element) => {
+    assert.equal(element, checkbox);
+    return {
+      triggerHandler(type) {
+        assert.equal(type, 'click');
+        assert.equal(viewInfo.bEmbed, false);
+        storedPreference = checkbox.checked;
+        nativeClicks++;
+      },
+    };
+  };
+  const { promise, resolve } = Promise.withResolvers();
+  const video = {
+    change_info(data) {
+      assert.equal(this, video);
+      assert.equal(viewInfo.bEmbed, false);
+      if (data instanceof Error) throw data;
+      checkbox.checked = storedPreference;
+      return data;
+    },
+  };
+  page.liveView = { isLoaded: () => promise, LiveViewInfo: viewInfo };
+  page.liveView.controller = {
+    getContainer: (name) => name === 'VideoContainer' && video,
+  };
+  resolve();
+  await setImmediate();
+
+  assert.equal(video.change_info('native result'), 'native result');
+  assert.equal(checkbox.checked, true);
+  assert.equal(viewInfo.bEmbed, true);
+  assert.throws(() => video.change_info(new Error('view error')), /view error/);
+  assert.equal(
+    Object.getOwnPropertyDescriptor(viewInfo, 'bEmbed').get,
+    viewEmbedGetter,
+  );
+
+  checkbox.addEventListener('click', () => nativeClicks++);
+  checkbox.checked = false;
+  checkbox.dispatchEvent(new Event('click'));
+  assert.equal(nativeClicks, 1);
+  assert.equal(storedPreference, false);
+  assert.equal(viewInfo.bEmbed, true);
+  checkbox.checked = true;
+  video.change_info();
+  assert.equal(checkbox.checked, false);
+  assert.deepEqual(warnings, []);
+}
+
+{
+  const { page, writes, warnings } = createHarness({
+    isolated: true,
+    embedded: true,
+  });
+  const archiveUrl = 'https://live-tm-test.sooplive.com/12345/playlist.m3u8';
+  const authUrl = 'https://live.sooplive.com/api/private_auth.php';
+  const expires = Math.floor(Date.now() / 1000) + 120;
+  const encodePolicy = (resource, expiry = expires) =>
+    btoa(
+      JSON.stringify({
+        Statement: [
+          {
+            Resource: resource,
+            Condition: { DateLessThan: { 'AWS:EpochTime': expiry } },
+          },
+        ],
+      }),
+    )
+      .replaceAll('+', '-')
+      .replaceAll('/', '~')
+      .replaceAll('=', '_');
+  const policy = encodePolicy('https://live-tm-test.sooplive.com/12345/*');
+  const signed = (cookiePolicy = policy) =>
+    `CloudFront-Signature=test-signature;CloudFront-Policy=${cookiePolicy};CloudFront-Key-Pair-Id=test-key;`;
+  let response = { result: 1, data: { signed_cookie: signed() } };
+  let setCalls = 0;
+  class SignedCookieManager {
+    get type() {
+      return this.mode;
+    }
+    set type(mode) {
+      this.mode = mode;
+      this.broadAuth = {
+        API_URL: mode === 'other-api' ? loginUrl : authUrl,
+        params: { type: mode, broad_no: 12345, url: archiveUrl },
+        async setSignedCookie() {
+          setCalls++;
+          return response;
+        },
+      };
+    }
+  }
+  const manager = new SignedCookieManager();
+  const info = { isEmbed: true, nBroadNo: 12345, szTimeShiftUrl: archiveUrl };
+  const timeShift = {
+    canUserUseTimeShift: true,
+    controller: { streamer: { signedCookieManager: manager } },
+  };
+  page.atob = atob;
+  let locks = 0;
+  page.navigator = {
+    locks: {
+      request: async (_name, callback) => {
+        locks++;
+        return callback();
+      },
+    },
+  };
+  page.livePlayer = {
+    externalInterface: { getPlayerInfo: () => info },
+    timeShift,
+  };
+  manager.type = 'sub_timeshift';
+  assert.equal(manager.type, 'sub_timeshift');
+  assert.equal(await manager.broadAuth.setSignedCookie(), response);
+  assert.equal(setCalls, 1);
+  assert.equal(locks, 1);
+  assert.deepEqual(
+    writes.map((cookie) => ({ ...cookie })),
+    [
+      ['CloudFront-Signature', 'test-signature'],
+      ['CloudFront-Policy', policy],
+      ['CloudFront-Key-Pair-Id', 'test-key'],
+    ].map(([name, value]) => ({
+      name,
+      value,
+      expires: expires * 1000,
+      path: '/12345/',
+      domain: 'sooplive.com',
+      sameSite: 'none',
+      partitioned: true,
+    })),
+  );
+
+  // Native refresh repeats the same route with a newly issued bundle.
+  manager.type = 'official_timeshift';
+  await manager.broadAuth.setSignedCookie();
+  assert.equal(writes.length, 6);
+  writes.length = 0;
+  for (const deniedResponse of [
+    { result: 0, data: { signed_cookie: signed() } },
+    {
+      result: 1,
+      data: {
+        signed_cookie: signed(encodePolicy('https://other.test/12345/*')),
+      },
+    },
+    {
+      result: 1,
+      data: {
+        signed_cookie: signed(
+          encodePolicy(
+            'https://live-tm-test.sooplive.com/12345/*',
+            expires - 300,
+          ),
+        ),
+      },
+    },
+    {
+      result: 1,
+      data: { signed_cookie: `${signed()}CloudFront-Policy=${policy}` },
+    },
+  ]) {
+    response = deniedResponse;
+    await manager.broadAuth.setSignedCookie();
+  }
+  response = { result: 1, data: { signed_cookie: signed() } };
+  timeShift.canUserUseTimeShift = false;
+  await manager.broadAuth.setSignedCookie();
+  timeShift.canUserUseTimeShift = true;
+  info.nBroadNo = 67890;
+  await manager.broadAuth.setSignedCookie();
+  info.nBroadNo = 12345;
+  for (const unrelatedType of ['subs_live', 'other-api']) {
+    manager.type = unrelatedType;
+    await manager.broadAuth.setSignedCookie();
+  }
+  assert.deepEqual(writes, []);
+  assert.deepEqual(warnings, []);
 }
 
 const existing = createHarness({

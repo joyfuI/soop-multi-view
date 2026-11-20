@@ -60,10 +60,13 @@ const App = () => {
     setUserscriptStatus(status);
     if (status === 'active') setUserscriptGuideOpen(false);
   });
-  const userscriptMissing = () => userscriptStatus() === 'missing';
+  const userscriptNeedsAttention = () => {
+    const status = userscriptStatus();
+    return status === 'missing' || status === 'outdated';
+  };
   const showUserscriptNotice = () =>
     ids().length === 0 ||
-    (userscriptMissing() &&
+    (userscriptNeedsAttention() &&
       (userscriptGuideOpen() || !userscriptNoticeDismissed()));
 
   const [stageSize, setStageSize] = createSignal<StageSize>({
@@ -360,7 +363,9 @@ const App = () => {
           }
         }}
         onOpenUserscriptGuide={
-          userscriptMissing() ? () => setUserscriptGuideOpen(true) : undefined
+          userscriptNeedsAttention()
+            ? () => setUserscriptGuideOpen(true)
+            : undefined
         }
       />
 

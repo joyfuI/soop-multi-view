@@ -60,7 +60,7 @@ function createHarness() {
       timers.delete(id);
       fn();
     },
-    reply(version = 1, overrides = {}) {
+    reply(version = 2, overrides = {}) {
       const request = sent.at(-1);
       check.receive({
         origin: request.origin,
@@ -93,11 +93,29 @@ assert.equal(absent.timers.size, 0);
 absent.reply();
 assert.equal(absent.statuses.at(-1), 'active');
 
+const outdated = createHarness();
+outdated.check.checkPage();
+outdated.reply(1);
+outdated.timeout();
+assert.deepEqual(outdated.statuses, ['checking']);
+outdated.timeout();
+assert.deepEqual(outdated.statuses, ['checking', 'outdated']);
+
+const lateOutdated = createHarness();
+lateOutdated.check.checkPage();
+lateOutdated.timeout();
+lateOutdated.timeout();
+lateOutdated.reply(1);
+lateOutdated.reply(1);
+assert.deepEqual(lateOutdated.statuses, ['checking', 'missing', 'outdated']);
+lateOutdated.reply();
+assert.equal(lateOutdated.statuses.at(-1), 'active');
+
 const invalid = createHarness();
 invalid.check.receive({
   origin: invalid.page.location.origin,
   source: invalid.page,
-  data: { type: 'soop-multi-view:userscript-ready', version: 1 },
+  data: { type: 'soop-multi-view:userscript-ready', version: 2 },
 });
 assert.deepEqual(invalid.statuses, []);
 invalid.check.checkPage();
@@ -110,25 +128,25 @@ for (const overrides of [
   { data: null },
   { data: 'unrelated' },
 ]) {
-  invalid.reply(1, overrides);
+  invalid.reply(2, overrides);
 }
 const validData = {
   type: 'soop-multi-view:userscript-ready',
   nonce: invalid.sent[0].data.nonce,
-  version: 1,
+  version: 2,
 };
 for (const data of [
   { ...validData, type: 'unrelated' },
   { ...validData, nonce: 'wrong' },
-  ...[0, -1, 1.5, '1', undefined, Infinity].map((version) => ({
+  ...[0, -1, 1.5, '2', undefined, Infinity].map((version) => ({
     ...validData,
     version,
   })),
 ]) {
-  invalid.reply(1, { data });
+  invalid.reply(2, { data });
 }
 assert.deepEqual(invalid.statuses, ['checking']);
-invalid.reply(2);
+invalid.reply();
 assert.equal(invalid.statuses.at(-1), 'active');
 assert.equal(invalid.timers.size, 0);
 invalid.reply();
@@ -142,8 +160,8 @@ const previous = { ...reload.sent[0].data };
 reload.check.checkPage();
 assert.notEqual(reload.sent[1].data.nonce, previous.nonce);
 assert.equal(reload.timers.size, 1);
-reload.reply(1, {
-  data: { ...previous, type: 'soop-multi-view:userscript-ready', version: 1 },
+reload.reply(2, {
+  data: { ...previous, type: 'soop-multi-view:userscript-ready', version: 2 },
 });
 assert.equal(reload.statuses.at(-1), 'checking');
 reload.reply();

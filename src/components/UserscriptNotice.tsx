@@ -17,7 +17,7 @@ const UserscriptNotice = (props: UserscriptNoticeProps) => {
     if (props.status === 'outdated') return '유저 스크립트 업데이트가 필요해요';
     return props.chromium
       ? '이 브라우저에서는 멀티뷰 로그인이 제한될 수 있어요'
-      : '화질 선택 메뉴를 사용해 보세요';
+      : '화질 선택, 시차 단축, 타임머신 등을 사용해 보세요';
   };
 
   return (
@@ -37,8 +37,8 @@ const UserscriptNotice = (props: UserscriptNoticeProps) => {
           <Show when={props.status !== 'active'}>
             <p class="mt-1 mb-0 text-xs leading-relaxed text-white/65">
               {props.chromium
-                ? '로그인 문제 해결과 화질 선택을 위해 유저 스크립트의 설치 상태를 확인해 주세요.'
-                : '유저 스크립트를 설치하면 숨겨진 화질 선택 메뉴를 사용할 수 있어요.'}
+                ? '로그인 문제 해결과 숨겨진 기능 복구를 위해 유저 스크립트의 설치 상태를 확인해 주세요.'
+                : '유저 스크립트를 설치하면 숨겨진 기능 메뉴를 사용할 수 있어요.'}
             </p>
           </Show>
           <p class="mt-2 mb-0 text-xs text-white/80">

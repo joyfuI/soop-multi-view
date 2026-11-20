@@ -1,6 +1,6 @@
 export type UserscriptStatus = 'checking' | 'missing' | 'outdated' | 'active';
 
-const MIN_VERSION = 1;
+const MIN_VERSION = 2;
 
 export const getBrowserFamily = (browser: {
   userAgent: string;
@@ -18,7 +18,7 @@ export const createUserscriptCheck = (
   onStatus: (status: UserscriptStatus) => void,
 ) => {
   let nonce: string | undefined;
-  let version: number | undefined;
+  let hasOutdatedVersion = false;
   let timer: number | undefined;
   let retried = false;
   let active = false;
@@ -41,7 +41,7 @@ export const createUserscriptCheck = (
         send();
         waitForResponse();
       } else {
-        onStatus(version === undefined ? 'missing' : 'outdated');
+        onStatus(hasOutdatedVersion ? 'outdated' : 'missing');
       }
     }, 3000);
   };
@@ -51,7 +51,7 @@ export const createUserscriptCheck = (
       if (active) return;
       clearTimer();
       nonce = crypto.randomUUID();
-      version = undefined;
+      hasOutdatedVersion = false;
       retried = false;
       onStatus('checking');
       send();
@@ -70,11 +70,13 @@ export const createUserscriptCheck = (
         data.version < 1
       )
         return;
-      version = data.version;
       if (data.version >= MIN_VERSION) {
         active = true;
         clearTimer();
         onStatus('active');
+      } else if (!hasOutdatedVersion) {
+        hasOutdatedVersion = true;
+        if (timer === undefined) onStatus('outdated');
       }
     },
     dispose() {
