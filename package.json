@@ -14,10 +14,10 @@
   },
   "dependencies": {
     "@solidjs/router": "^2.0.0",
-    "@solidjs/web": "^2.0.0",
+    "@solidjs/web": "^2.0.3",
     "@tanstack/solid-query": "6.0.0-rc.6",
     "@tanstack/solid-query-devtools": "6.0.0-rc.6",
-    "solid-js": "^2.0.0"
+    "solid-js": "^2.0.3"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.8",

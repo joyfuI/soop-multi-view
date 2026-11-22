@@ -177,26 +177,26 @@ importers:
     dependencies:
       '@solidjs/router':
         specifier: ^2.0.0
-        version: 2.0.0(@solidjs/web@2.0.0(solid-js@2.0.0))(solid-js@2.0.0)
+        version: 2.0.0(@solidjs/web@2.0.3(solid-js@2.0.3))(solid-js@2.0.3)
       '@solidjs/web':
-        specifier: ^2.0.0
-        version: 2.0.0(solid-js@2.0.0)
+        specifier: ^2.0.3
+        version: 2.0.3(solid-js@2.0.3)
       '@tanstack/solid-query':
         specifier: 6.0.0-rc.6
-        version: 6.0.0-rc.6(@solidjs/web@2.0.0(solid-js@2.0.0))(solid-js@2.0.0)
+        version: 6.0.0-rc.6(@solidjs/web@2.0.3(solid-js@2.0.3))(solid-js@2.0.3)
       '@tanstack/solid-query-devtools':
         specifier: 6.0.0-rc.6
-        version: 6.0.0-rc.6(@solidjs/web@2.0.0(solid-js@2.0.0))(@tanstack/solid-query@6.0.0-rc.6(@solidjs/web@2.0.0(solid-js@2.0.0))(solid-js@2.0.0))(csstype@3.2.4)(solid-js@2.0.0)
+        version: 6.0.0-rc.6(@solidjs/web@2.0.3(solid-js@2.0.3))(@tanstack/solid-query@6.0.0-rc.6(@solidjs/web@2.0.3(solid-js@2.0.3))(solid-js@2.0.3))(csstype@3.2.4)(solid-js@2.0.3)
       solid-js:
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.0.3
+        version: 2.0.3
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.6.8
         version: 2.6.8
       '@solidjs/vite-plugin':
         specifier: ^3.0.1
-        version: 3.0.1(@solidjs/web@2.0.0(solid-js@2.0.0))(solid-js@2.0.0)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.6.1))
+        version: 3.0.1(@solidjs/web@2.0.3(solid-js@2.0.3))(solid-js@2.0.3)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.6.1))
       '@tailwindcss/vite':
         specifier: ^4.3.5
         version: 4.3.5(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.6.1))
@@ -572,8 +572,8 @@ packages:
       filesystem-routing:
         optional: true
 
-  '@solidjs/signals@2.0.0':
-    resolution: {integrity: sha512-jrcT6XTVvsYRpesRp0At/mSUnsWr6jiprK8C93Oat56B8n7X9BMSe58Rxl6qSZUhBN0L+sxm8GzeO7HdhBXvDw==}
+  '@solidjs/signals@2.0.3':
+    resolution: {integrity: sha512-M6+kiJflqSvJRHRcmdsdIXpPLPkQrY817zWKKfxZ3z3ZRE5eEtddtWPrDXY4IM1Wz3zAqG+3Fx/HQIkAtpRwnA==}
     engines: {node: '>=22.12.0'}
 
   '@solidjs/vite-plugin@3.0.1':
@@ -597,11 +597,11 @@ packages:
       '@testing-library/jest-dom':
         optional: true
 
-  '@solidjs/web@2.0.0':
-    resolution: {integrity: sha512-R0+JMCD6ukEXaID/sH5PVQe9bCIN9pRzJry+F6Sb6YvtlkAp9DEyVI7AeZYiV0cd6TSL98kpbCyLDiZnaAKGrA==}
+  '@solidjs/web@2.0.3':
+    resolution: {integrity: sha512-XYl9JGOtQ8yJSZRnd6uC+5gYXsYvnIRNxhn89m+F1v6D4d4ZFdTJY2Lq/8XJ3YcjckkCrK/mNfd3kIiqqgnG7w==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
-      solid-js: ^2.0.0
+      solid-js: ^2.0.3
 
   '@swc/helpers@0.5.24':
     resolution: {integrity: sha512-6tcXo4kA8HgGO7AVmawB57RYi/piBPYVHVcO6dXjX+SZw8GoHmi262sp4v2Ha2kNP9Cx84qei27yT+fjS1lxgg==}
@@ -1036,8 +1036,8 @@ packages:
   solid-js@1.9.19:
     resolution: {integrity: sha512-NIrV/6o1FtmrA9iuAAYvnQJZaHrGcaH3LKSVj4kCiZfwqjCtJNDgIgR9XcqYl6KR/Lb3oRx1HrlyswPWR8SRvw==}
 
-  solid-js@2.0.0:
-    resolution: {integrity: sha512-9zN4uH2OQeQAYbF4BmIzoaa+L5Hb8Dp6kkP6ZXobHQ1FZVICdmzREPDVDBJY7umzdAE8D6zbFfWhxGtagkyslA==}
+  solid-js@2.0.3:
+    resolution: {integrity: sha512-XOHstv+GAJjfcSGZU9xfX5q6Mbqmv72IcdWh2JuMx3KvBbfpQPdy/Yl00A1ouk7A0etjqhNe799CPdr6i7koWg==}
     engines: {node: '>=22.12.0'}
 
   solid-presence@0.2.0:
@@ -1454,30 +1454,30 @@ snapshots:
       '@solidjs/compiler-wasm32-wasi': 2.0.0
       '@solidjs/compiler-win32-x64-msvc': 2.0.0
 
-  '@solidjs/router@2.0.0(@solidjs/web@2.0.0(solid-js@2.0.0))(solid-js@2.0.0)':
+  '@solidjs/router@2.0.0(@solidjs/web@2.0.3(solid-js@2.0.3))(solid-js@2.0.3)':
     dependencies:
-      '@solidjs/web': 2.0.0(solid-js@2.0.0)
-      solid-js: 2.0.0
+      '@solidjs/web': 2.0.3(solid-js@2.0.3)
+      solid-js: 2.0.3
 
-  '@solidjs/signals@2.0.0': {}
+  '@solidjs/signals@2.0.3': {}
 
-  '@solidjs/vite-plugin@3.0.1(@solidjs/web@2.0.0(solid-js@2.0.0))(solid-js@2.0.0)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.6.1))':
+  '@solidjs/vite-plugin@3.0.1(@solidjs/web@2.0.3(solid-js@2.0.3))(solid-js@2.0.3)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.6.1))':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@solidjs/compiler': 2.0.0
-      '@solidjs/web': 2.0.0(solid-js@2.0.0)
+      '@solidjs/web': 2.0.3(solid-js@2.0.3)
       magic-string: 0.30.21
       merge-anything: 5.1.7
-      solid-js: 2.0.0
+      solid-js: 2.0.3
       vite: 8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.6.1)
       vitefu: 1.1.4(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.6.1))
 
-  '@solidjs/web@2.0.0(solid-js@2.0.0)':
+  '@solidjs/web@2.0.3(solid-js@2.0.3)':
     dependencies:
       csstype: 3.2.4
       seroval: 1.8.2
       seroval-plugins: 1.8.0(seroval@1.8.2)
-      solid-js: 2.0.0
+      solid-js: 2.0.3
 
   '@swc/helpers@0.5.24': {}
 
@@ -1572,20 +1572,20 @@ snapshots:
     transitivePeerDependencies:
       - csstype
 
-  '@tanstack/solid-query-devtools@6.0.0-rc.6(@solidjs/web@2.0.0(solid-js@2.0.0))(@tanstack/solid-query@6.0.0-rc.6(@solidjs/web@2.0.0(solid-js@2.0.0))(solid-js@2.0.0))(csstype@3.2.4)(solid-js@2.0.0)':
+  '@tanstack/solid-query-devtools@6.0.0-rc.6(@solidjs/web@2.0.3(solid-js@2.0.3))(@tanstack/solid-query@6.0.0-rc.6(@solidjs/web@2.0.3(solid-js@2.0.3))(solid-js@2.0.3))(csstype@3.2.4)(solid-js@2.0.3)':
     dependencies:
-      '@solidjs/web': 2.0.0(solid-js@2.0.0)
+      '@solidjs/web': 2.0.3(solid-js@2.0.3)
       '@tanstack/query-devtools': 5.107.1(csstype@3.2.4)
-      '@tanstack/solid-query': 6.0.0-rc.6(@solidjs/web@2.0.0(solid-js@2.0.0))(solid-js@2.0.0)
-      solid-js: 2.0.0
+      '@tanstack/solid-query': 6.0.0-rc.6(@solidjs/web@2.0.3(solid-js@2.0.3))(solid-js@2.0.3)
+      solid-js: 2.0.3
     transitivePeerDependencies:
       - csstype
 
-  '@tanstack/solid-query@6.0.0-rc.6(@solidjs/web@2.0.0(solid-js@2.0.0))(solid-js@2.0.0)':
+  '@tanstack/solid-query@6.0.0-rc.6(@solidjs/web@2.0.3(solid-js@2.0.3))(solid-js@2.0.3)':
     dependencies:
-      '@solidjs/web': 2.0.0(solid-js@2.0.0)
+      '@solidjs/web': 2.0.3(solid-js@2.0.3)
       '@tanstack/query-core': 5.107.1
-      solid-js: 2.0.0
+      solid-js: 2.0.3
 
   '@tanstack/solid-virtual@3.13.53(solid-js@1.9.19)':
     dependencies:
@@ -1808,9 +1808,9 @@ snapshots:
       seroval: 1.6.12
       seroval-plugins: 1.6.12(seroval@1.6.12)
 
-  solid-js@2.0.0:
+  solid-js@2.0.3:
     dependencies:
-      '@solidjs/signals': 2.0.0
+      '@solidjs/signals': 2.0.3
       seroval: 1.8.2
       seroval-plugins: 1.8.0(seroval@1.8.2)
 
